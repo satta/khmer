@@ -53,7 +53,7 @@ https://s3.amazonaws.com/public.ged.msu.edu/khmer/iowa-corn-50m.fa.gz
 
   cd /path/to/data
   
-  # the next command will create a '50m.ct' and a '50m.tagset',
+  # the next command will create a '50m.pt' and a '50m.tagset',
   # representing the de Bruijn graph
   load-graph.py -k 32 -N 4 -x 16e9 50m iowa-corn-50m.fa.gz 
   
