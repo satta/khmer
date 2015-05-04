@@ -113,8 +113,10 @@ SOURCES.extend(path_join("lib", bn + ".cc") for bn in [
 SOURCES.extend(path_join("third-party", "smhasher", bn + ".cc") for bn in [
     "MurmurHash3"])
 
-EXTRA_COMPILE_ARGS = ['-O3', ]
-EXTRA_LINK_ARGS = []
+#EXTRA_COMPILE_ARGS = ['-fsanitize=address', '-fsanitize=thread', '-fsanitize=leak', '-fsanitize=undefined', '-g',]
+EXTRA_COMPILE_ARGS = ['-std=c++11', '-fsanitize=address', '-fsanitize=leak', '-g',]
+#EXTRA_LINK_ARGS = ['-lasan', '-llsan',]
+EXTRA_LINK_ARGS = ['-lasan', '-llsan',]
 
 if sys.platform == 'darwin':
     # force 64bit only builds

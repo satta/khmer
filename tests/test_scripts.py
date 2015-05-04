@@ -1007,6 +1007,7 @@ def test_load_graph_write_fp():
     assert 'false positive rate estimated to be 0.002' in data
 
 
+@attr('multithread')
 def test_load_graph_multithread():
     script = scriptpath('load-graph.py')
 
@@ -1559,6 +1560,7 @@ def test_abundance_dist_single():
     assert line == '1001 2 98 1.0', line
 
 
+@attr('multithread')
 def test_abundance_dist_threaded():
     infile = utils.get_temp_filename('test.fa')
     outfile = utils.get_temp_filename('test.dist')

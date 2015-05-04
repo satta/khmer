@@ -98,6 +98,9 @@ cppcheck-result.xml: $(CPPSOURCES)
 cppcheck: $(CPPSOURCES)
 	${CPPCHECK}
 
+clang-modernize: $(CPPSOURCES)
+	clang-modernize-3.6 --for-compilers=clang-3.6,gcc-4.8 $^ -- -std=c++11 -Ilib -Ithird-party/zlib -Ithird-party/bzip2 -Ithird-party/seqan/core/include -Ithird-party/smhasher -I/usr/include/python2.7
+
 ## pep8        : check Python code style
 pep8: $(PYSOURCES) $(wildcard tests/*.py)
 	pep8 --exclude=_version.py  --show-source --show-pep8 setup.py khmer/ \
