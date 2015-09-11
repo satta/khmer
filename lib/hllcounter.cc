@@ -172,11 +172,6 @@ double estimate_bias(double E, int p)
     return estimate / nearest.size();
 }
 
-double ep_sum(double acc, int b)
-{
-    return acc += pow(2.0, float(-b));
-}
-
 int get_rho(HashIntoType w, int max_width)
 {
     return max_width - floor(log2(w));
@@ -239,7 +234,11 @@ void HLLCounter::set_ksize(WordLength new_ksize)
 
 double HLLCounter::_Ep()
 {
-    double sum = accumulate(this->M.begin(), this->M.end(), 0.0, ep_sum);
+    double sum = 0.0;
+    for(auto v: this->M) {
+        sum += pow(2.0, float(-v));
+    }
+
     double E = this->alpha * pow(this->m, 2.0) / sum;
 
     if (E <= (5 * (double)this->m)) {
