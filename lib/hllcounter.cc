@@ -269,18 +269,14 @@ void HLLCounter::add(const std::string &value)
                           get_rho(x >> this->p, 8 * sizeof(HashIntoType) - this->p));
 }
 
-unsigned int HLLCounter::consume_string(const std::string &inp)
+unsigned int HLLCounter::consume_string(const std::string &s)
 {
     unsigned int n_consumed = 0;
     std::string kmer = "";
-    std::string s = inp;
 
-    for (unsigned int i = 0; i < s.length(); i++)  {
-        s[i] &= 0xdf; // toupper - knock out the "lowercase bit"
-    }
-
-    for(std::string::const_iterator it = s.begin(); it != s.end(); ++it) {
-        kmer.push_back(*it);
+    for(auto ch: s) {
+        ch &= 0xdf; // toupper - knock out the "lowercase bit"
+        kmer.push_back(ch);
         if (kmer.size() < _ksize) {
             continue;
         }
