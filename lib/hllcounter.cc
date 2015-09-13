@@ -139,10 +139,8 @@ std::vector<int> get_nearest_neighbors(double E, std::vector<double> estimate)
     std::vector<int> nearest;
 
     int i = 0;
-    for (std::vector<double>::iterator it = estimate.begin();
-            it != estimate.end();
-            ++it) {
-        std::pair<double, int> p(pow(E - *it, 2.0), i);
+    for (auto v: estimate) {
+        std::pair<double, int> p(pow(E - v, 2.0), i);
         distance_map.push_back(p);
         i++;
     }
@@ -158,17 +156,13 @@ std::vector<int> get_nearest_neighbors(double E, std::vector<double> estimate)
 
 double estimate_bias(double E, int p)
 {
-    std::vector<double> bias = biasData[p];
-    std::vector<double> raw_estimate = rawEstimateData[p];
-
-    std::vector<int> nearest = get_nearest_neighbors(E, raw_estimate);
+    std::vector<int> nearest = get_nearest_neighbors(E, rawEstimateData[p]);
     double estimate = 0.0;
 
-    for (std::vector<int>::iterator it = nearest.begin();
-            it != nearest.end();
-            ++it) {
-        estimate += bias[*it];
+    for (auto v: nearest) {
+        estimate += biasData[p][v];
     }
+
     return estimate / nearest.size();
 }
 
@@ -235,7 +229,7 @@ void HLLCounter::set_ksize(WordLength new_ksize)
 double HLLCounter::_Ep()
 {
     double sum = 0.0;
-    for(auto v: this->M) {
+    for (auto v: this->M) {
         sum += pow(2.0, float(-v));
     }
 
@@ -274,7 +268,7 @@ unsigned int HLLCounter::consume_string(const std::string &s)
     unsigned int n_consumed = 0;
     std::string kmer = "";
 
-    for(auto ch: s) {
+    for (auto ch: s) {
         ch &= 0xdf; // toupper - knock out the "lowercase bit"
         kmer.push_back(ch);
         if (kmer.size() < _ksize) {
@@ -398,12 +392,12 @@ bool HLLCounter::check_and_normalize_read(std::string &read) const
         return false;
     }
 
-    for (unsigned int i = 0; i < read.length(); i++) {
-        read[i] &= 0xdf; // toupper - knock out the "lowercase bit"
-        if (read[i] == 'N') {
-            read[i] = 'A';
+    for (auto &ch: read) {
+        ch &= 0xdf; // toupper - knock out the "lowercase bit"
+        if (ch == 'N') {
+            ch = 'A';
         }
-        if (!is_valid_dna( read[i] )) {
+        if (!is_valid_dna(ch)) {
             is_valid = false;
             break;
         }
@@ -417,7 +411,7 @@ void HLLCounter::merge(HLLCounter &other)
     if (this->p != other.p || this->_ksize != other._ksize) {
         throw khmer_exception("HLLCounters to be merged must be created with same parameters");
     }
-    for(unsigned int i=0; i < this->M.size(); ++i) {
+    for (unsigned int i=0; i < this->M.size(); ++i) {
         this->M[i] = std::max(other.M[i], this->M[i]);
     }
 }
