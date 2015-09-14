@@ -3,7 +3,7 @@
    * khmer/khmer_args.py: deal with division by zero errors.
    * tests/test_streaming_io.py: add test for empty inputs on unique-kmers.py
 
-2015-09-11  Russell Y. Neches <ryneches@ucdavis.edu>
+2015-09-11  Russell Y. Neches  <ryneches@ucdavis.edu>
    * lib/hashbits.hh: added get_raw_tables to Hashbits
    * khmer/_khmer.cc: added get_raw_tables to Hashbits
    * tests/test_nodegraph.py: added test for Nodegraph.get_raw_tables
