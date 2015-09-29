@@ -145,7 +145,7 @@ std::vector<int> get_nearest_neighbors(double E, std::vector<double> estimate)
         i++;
     }
 
-    sort(distance_map.begin(), distance_map.end());
+    sort(begin(distance_map), end(distance_map));
 
     for(int k=0; k < 6; k++) {
         nearest.push_back(distance_map[k].second);
@@ -203,7 +203,7 @@ double HLLCounter::get_erate()
 
 void HLLCounter::set_erate(double error_rate)
 {
-    if (count(this->M.begin(), this->M.end(), 0) != this->m) {
+    if (count(begin(M), end(M), 0) != m) {
         throw ReadOnlyAttribute("You can only change error rate prior to "
                                 "first counting");
     }
@@ -218,7 +218,7 @@ void HLLCounter::set_erate(double error_rate)
 
 void HLLCounter::set_ksize(WordLength new_ksize)
 {
-    if (count(this->M.begin(), this->M.end(), 0) != this->m) {
+    if (count(begin(M), end(M), 0) != m) {
         throw ReadOnlyAttribute("You can only change k-mer size prior to "
                                 "first counting");
     }
