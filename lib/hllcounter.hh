@@ -122,7 +122,7 @@ extern "C" {
    For a description of following constants see
    HyperLogLog in Practice: Algorithmic Engineering of a State of The Art
       Cardinality Estimation Algorithm
-   jtefan Heule, Marc Nunkesser and Alex Hall
+   Stefan Heule, Marc Nunkesser and Alex Hall
    dx.doi.org/10.1145/2452376.2452456
 */
 const int THRESHOLD_DATA[] = {
