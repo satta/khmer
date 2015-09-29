@@ -166,7 +166,8 @@ double estimate_bias(double E, int p)
     return estimate / nearest.size();
 }
 
-int get_rho(HashIntoType w, int max_width)
+uint8_t
+get_rho(HashIntoType w, uint8_t max_width)
 {
     return max_width - floor(log2(w));
 }
@@ -177,28 +178,28 @@ HLLCounter::HLLCounter(double error_rate, WordLength ksize)
         throw InvalidValue("Please set error rate to a value "
                            "greater than zero");
     }
-    int p = ceil(log2(pow(1.04 / error_rate, 2)));
-    this->init(p, ksize);
+    int new_p = ceil(log2(pow(1.04 / error_rate, 2)));
+    init(new_p, ksize);
 }
 
-HLLCounter::HLLCounter(int p, WordLength ksize)
+HLLCounter::HLLCounter(int new_p, WordLength ksize)
 {
-    this->init(p, ksize);
+    init(new_p, ksize);
 }
 
-void HLLCounter::init(int p, WordLength ksize)
+void HLLCounter::init(int new_p, WordLength ksize)
 {
-    this->alpha = calc_alpha(p);
-    this->p = p;
-    this->_ksize = ksize;
-    this->m = 1 << p;
-    std::vector<int> M(this->m, 0.0);
-    this->M = M;
+    alpha = calc_alpha(new_p);
+    p = new_p;
+    _ksize = ksize;
+    m = 1 << new_p;
+    std::vector<uint8_t> new_M(m, 0);
+    M = new_M;
 }
 
 double HLLCounter::get_erate()
 {
-    return 1.04 / sqrt(this->m);
+    return 1.04 / sqrt(m);
 }
 
 void HLLCounter::set_erate(double error_rate)
@@ -212,8 +213,8 @@ void HLLCounter::set_erate(double error_rate)
         throw InvalidValue("Please set error rate to a value "
                            "greater than zero");
     }
-    int p = ceil(log2(pow(1.04 / error_rate, 2)));
-    this->init(p, this->_ksize);
+    int new_p = ceil(log2(pow(1.04 / error_rate, 2)));
+    init(new_p, _ksize);
 }
 
 void HLLCounter::set_ksize(WordLength new_ksize)
@@ -223,20 +224,20 @@ void HLLCounter::set_ksize(WordLength new_ksize)
                                 "first counting");
     }
 
-    this->init(this->p, new_ksize);
+    init(p, new_ksize);
 }
 
 double HLLCounter::_Ep()
 {
     double sum = 0.0;
-    for (auto v: this->M) {
+    for (auto v: M) {
         sum += pow(2.0, float(-v));
     }
 
-    double E = this->alpha * pow(this->m, 2.0) / sum;
+    double E = alpha * pow(m, 2.0) / sum;
 
-    if (E <= (5 * (double)this->m)) {
-        return E - estimate_bias(E, this->p);
+    if (E <= (5 * (double)m)) {
+        return E - estimate_bias(E, p);
     }
 
     return E;
@@ -244,23 +245,22 @@ double HLLCounter::_Ep()
 
 HashIntoType HLLCounter::estimate_cardinality()
 {
-    long V = count(this->M.begin(), this->M.end(), 0);
+    long V = count(begin(M), end(M), 0);
 
     if (V > 0) {
-        double H = this->m * log((double)this->m / V);
-        if (H <= get_threshold(this->p)) {
+        double H = m * log((double)m / V);
+        if (H <= get_threshold(p)) {
             return H;
         }
     }
-    return this->_Ep();
+    return _Ep();
 }
 
 void HLLCounter::add(const std::string &value)
 {
     HashIntoType x = khmer::_hash_murmur(value);
-    HashIntoType j = x & (this->m - 1);
-    this->M[j] = std::max(this->M[j],
-                          get_rho(x >> this->p, 8 * sizeof(HashIntoType) - this->p));
+    HashIntoType j = x & (m - 1);
+    M[j] = std::max(M[j], get_rho(x >> p, 8 * sizeof(HashIntoType) - p));
 }
 
 unsigned int HLLCounter::consume_string(const std::string &s)
@@ -274,7 +274,7 @@ unsigned int HLLCounter::consume_string(const std::string &s)
         if (kmer.size() < _ksize) {
             continue;
         }
-        this->add(kmer);
+        add(kmer);
 
         kmer.erase(0, 1);
         n_consumed++;
@@ -322,7 +322,7 @@ void HLLCounter::consume_fasta(
 
             for (int i=0; i < omp_get_num_threads(); i++)
             {
-                HLLCounter *newc = new HLLCounter(this->p, this->_ksize);
+                HLLCounter *newc = new HLLCounter(p, _ksize);
                 counters[i] = newc;
             }
 
@@ -360,7 +360,7 @@ void HLLCounter::consume_fasta(
         {
             for (int i=0; i < omp_get_num_threads(); ++i)
             {
-                this->merge(*counters[i]);
+                merge(*counters[i]);
                 delete counters[i];
                 n_consumed += n_consumed_partial[i];
                 total_reads += total_reads_partial[i];;
@@ -388,7 +388,7 @@ bool HLLCounter::check_and_normalize_read(std::string &read) const
 {
     bool is_valid = true;
 
-    if (read.length() < this->_ksize) {
+    if (read.length() < _ksize) {
         return false;
     }
 
@@ -408,10 +408,10 @@ bool HLLCounter::check_and_normalize_read(std::string &read) const
 
 void HLLCounter::merge(HLLCounter &other)
 {
-    if (this->p != other.p || this->_ksize != other._ksize) {
+    if ((p != other.p) or (_ksize != other._ksize)) {
         throw khmer_exception("HLLCounters to be merged must be created with same parameters");
     }
-    for (unsigned int i=0; i < this->M.size(); ++i) {
-        this->M[i] = std::max(other.M[i], this->M[i]);
+    for (size_t i=0; i < M.size(); ++i) {
+        M[i] = std::max(other.M[i], M[i]);
     }
 }

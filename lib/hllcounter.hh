@@ -96,7 +96,7 @@ public:
     {
         return _ksize;
     }
-    std::vector<int> get_M()
+    std::vector<uint8_t> get_M()
     {
         return M;
     }
@@ -108,9 +108,9 @@ private:
     int p;
     int m;
     WordLength _ksize;
-    std::vector<int> M;
+    std::vector<uint8_t> M;
 
-    void init(int p, WordLength ksize);
+    void init(int, WordLength);
 };
 
 }
