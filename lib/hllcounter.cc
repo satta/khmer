@@ -116,6 +116,13 @@ double calc_alpha(const int m)
                            "greater than 0.0040624");
     }
 
+    /*
+       For a description of following constants see
+       HyperLogLog in Practice: Algorithmic Engineering of a State of The Art
+          Cardinality Estimation Algorithm
+       Stefan Heule, Marc Nunkesser and Alex Hall
+       dx.doi.org/10.1145/2452376.2452456
+    */
     switch (p) {
     case 4:
         return 0.673;
