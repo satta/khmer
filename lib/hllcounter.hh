@@ -60,7 +60,7 @@ class HLLCounter
 {
 public:
     HLLCounter(double error_rate, WordLength ksize);
-    HLLCounter(int p, WordLength ksize);
+    HLLCounter(int m, WordLength ksize);
 
     void add(const std::string &);
     unsigned int consume_string(const std::string &);
@@ -85,30 +85,30 @@ public:
     }
     int get_p()
     {
-        return p;
+        return ncounters_log2;
     }
-    int get_m()
+    int get_ncounters()
     {
-        return m;
+        return ncounters;
     }
     void set_ksize(WordLength new_ksize);
     int get_ksize()
     {
         return _ksize;
     }
-    std::vector<uint8_t> get_M()
+    std::vector<uint8_t> get_counters()
     {
-        return M;
+        return counters;
     }
     double get_erate();
     void set_erate(double new_erate);
 private:
     double _Ep();
     double alpha;
-    int p;
-    int m;
+    int ncounters;
+    int ncounters_log2;
     WordLength _ksize;
-    std::vector<uint8_t> M;
+    std::vector<uint8_t> counters;
 
     void init(int, WordLength);
 };

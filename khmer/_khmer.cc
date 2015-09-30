@@ -4632,7 +4632,7 @@ static
 PyObject *
 hllcounter_getcounters(khmer_KHLLCounter_Object * me)
 {
-    std::vector<uint8_t> counters = me->hllcounter->get_M();
+    std::vector<uint8_t> counters = me->hllcounter->get_counters();
 
     PyObject * x = PyList_New(counters.size());
     for (size_t i = 0; i < counters.size(); i++) {

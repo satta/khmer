@@ -104,8 +104,10 @@ std::map<int, std::vector<double> > biasData = {
 };
 
 
-double calc_alpha(const int p)
+double calc_alpha(const int m)
 {
+    int p = floor(log2(m));
+
     if (p < 4) {
         // ceil(log2((1.04 / x) ^ 2)) = 4, solve for x
         throw InvalidValue("Please set error rate to a value "
@@ -116,13 +118,6 @@ double calc_alpha(const int p)
                            "greater than 0.0040624");
     }
 
-    /*
-       For a description of following constants see
-       HyperLogLog in Practice: Algorithmic Engineering of a State of The Art
-          Cardinality Estimation Algorithm
-       Stefan Heule, Marc Nunkesser and Alex Hall
-       dx.doi.org/10.1145/2452376.2452456
-    */
     switch (p) {
     case 4:
         return 0.673;
@@ -187,32 +182,32 @@ HLLCounter::HLLCounter(double error_rate, WordLength ksize)
                            "greater than zero");
     }
     int new_p = ceil(log2(pow(1.04 / error_rate, 2)));
-    init(new_p, ksize);
+    init(1 << new_p, ksize);
 }
 
-HLLCounter::HLLCounter(int new_p, WordLength ksize)
+HLLCounter::HLLCounter(int nc, WordLength ksize)
 {
-    init(new_p, ksize);
+    init(nc, ksize);
 }
 
-void HLLCounter::init(int new_p, WordLength ksize)
+void HLLCounter::init(int nc, WordLength ksize)
 {
-    alpha = calc_alpha(new_p);
-    p = new_p;
+    alpha = calc_alpha(nc);
+    ncounters_log2 = floor(log2(nc));
+    ncounters = 1 << ncounters_log2;
     _ksize = ksize;
-    m = 1 << new_p;
-    std::vector<uint8_t> new_M(m, 0);
-    M = new_M;
+    std::vector<uint8_t> newc(ncounters, 0);
+    counters = newc;
 }
 
 double HLLCounter::get_erate()
 {
-    return 1.04 / sqrt(m);
+    return 1.04 / sqrt(ncounters);
 }
 
 void HLLCounter::set_erate(double error_rate)
 {
-    if (count(begin(M), end(M), 0) != m) {
+    if (count(begin(counters), end(counters), 0) != ncounters) {
         throw ReadOnlyAttribute("You can only change error rate prior to "
                                 "first counting");
     }
@@ -222,30 +217,30 @@ void HLLCounter::set_erate(double error_rate)
                            "greater than zero");
     }
     int new_p = ceil(log2(pow(1.04 / error_rate, 2)));
-    init(new_p, _ksize);
+    init(1 << new_p, _ksize);
 }
 
 void HLLCounter::set_ksize(WordLength new_ksize)
 {
-    if (count(begin(M), end(M), 0) != m) {
+    if (count(begin(counters), end(counters), 0) != ncounters) {
         throw ReadOnlyAttribute("You can only change k-mer size prior to "
                                 "first counting");
     }
 
-    init(p, new_ksize);
+    _ksize = new_ksize;
 }
 
 double HLLCounter::_Ep()
 {
     double sum = 0.0;
-    for (auto v: M) {
+    for (auto v: counters) {
         sum += pow(2.0, float(-v));
     }
 
-    double E = alpha * pow(m, 2.0) / sum;
+    double E = alpha * pow(ncounters, 2.0) / sum;
 
-    if (E <= (5 * (double)m)) {
-        return E - estimate_bias(E, p);
+    if (E <= (5 * (double)ncounters)) {
+        return E - estimate_bias(E, ncounters_log2);
     }
 
     return E;
@@ -253,11 +248,11 @@ double HLLCounter::_Ep()
 
 HashIntoType HLLCounter::estimate_cardinality()
 {
-    long V = count(begin(M), end(M), 0);
+    long V = count(begin(counters), end(counters), 0);
 
     if (V > 0) {
-        double H = m * log((double)m / V);
-        if (H <= get_threshold(p)) {
+        double H = ncounters * log((double)ncounters / V);
+        if (H <= get_threshold(ncounters_log2)) {
             return H;
         }
     }
@@ -267,8 +262,10 @@ HashIntoType HLLCounter::estimate_cardinality()
 void HLLCounter::add(const std::string &value)
 {
     HashIntoType x = khmer::_hash_murmur(value);
-    HashIntoType j = x & (m - 1);
-    M[j] = std::max(M[j], get_rho(x >> p, 8 * sizeof(HashIntoType) - p));
+    HashIntoType j = x & (ncounters - 1);
+    counters[j] = std::max(counters[j],
+                           get_rho(x >> ncounters_log2,
+                                   8 * sizeof(HashIntoType) - ncounters_log2));
 }
 
 unsigned int HLLCounter::consume_string(const std::string &s)
@@ -311,7 +308,7 @@ void HLLCounter::consume_fasta(
 {
 
     read_parsers::Read read;
-    HLLCounter** counters;
+    HLLCounter** hlls;
     unsigned int *n_consumed_partial;
     unsigned int *total_reads_partial;
 
@@ -321,7 +318,7 @@ void HLLCounter::consume_fasta(
     {
         #pragma omp master
         {
-            counters = (HLLCounter**)calloc(omp_get_num_threads(),
+            hlls = (HLLCounter**)calloc(omp_get_num_threads(),
             sizeof(HLLCounter*));
             n_consumed_partial = (unsigned int*)calloc(omp_get_num_threads(),
             sizeof(unsigned int));
@@ -330,8 +327,8 @@ void HLLCounter::consume_fasta(
 
             for (int i=0; i < omp_get_num_threads(); i++)
             {
-                HLLCounter *newc = new HLLCounter(p, _ksize);
-                counters[i] = newc;
+                HLLCounter *newc = new HLLCounter(ncounters, _ksize);
+                hlls[i] = newc;
             }
 
             while (!parser->is_complete())
@@ -348,12 +345,12 @@ void HLLCounter::consume_fasta(
                 }
 
                 #pragma omp task default(none) firstprivate(read) \
-                shared(counters, n_consumed_partial, total_reads_partial)
+                shared(hlls, n_consumed_partial, total_reads_partial)
                 {
                     bool is_valid;
                     int n, t = omp_get_thread_num();
-                    n = counters[t]->check_and_process_read(read.sequence,
-                                                            is_valid);
+                    n = hlls[t]->check_and_process_read(read.sequence,
+                                                        is_valid);
                     n_consumed_partial[t] += n;
                     if (is_valid) {
                         total_reads_partial[t] += 1;
@@ -368,12 +365,12 @@ void HLLCounter::consume_fasta(
         {
             for (int i=0; i < omp_get_num_threads(); ++i)
             {
-                merge(*counters[i]);
-                delete counters[i];
+                merge(*hlls[i]);
+                delete hlls[i];
                 n_consumed += n_consumed_partial[i];
                 total_reads += total_reads_partial[i];;
             }
-            free(counters);
+            free(hlls);
             free(n_consumed_partial);
             free(total_reads_partial);
         }
@@ -416,10 +413,10 @@ bool HLLCounter::check_and_normalize_read(std::string &read) const
 
 void HLLCounter::merge(HLLCounter &other)
 {
-    if ((p != other.p) or (_ksize != other._ksize)) {
+    if ((ncounters != other.ncounters) or (_ksize != other._ksize)) {
         throw khmer_exception("HLLCounters to be merged must be created with same parameters");
     }
-    for (size_t i=0; i < M.size(); ++i) {
-        M[i] = std::max(other.M[i], M[i]);
+    for (size_t i=0; i < counters.size(); ++i) {
+        counters[i] = std::max(other.counters[i], counters[i]);
     }
 }
