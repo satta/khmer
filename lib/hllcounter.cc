@@ -55,8 +55,6 @@ Contact: khmer-project@idyll.org
 #define omp_get_num_threads() 1
 #endif
 
-#define arr_len(a) (a + sizeof a / sizeof a[0])
-
 using namespace khmer;
 
 /*
