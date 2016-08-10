@@ -39,12 +39,18 @@ import argparse
 import screed
 from khmer import khmer_args
 from khmer import khmer_logger
+import sys
+
+#import cProfile
 
 
 def get_parser():
-    parser = khmer_args.build_counting_args(descr='Calculate')
+    parser = khmer_args.build_nodegraph_args(descr='Calculate')
+    parser.add_argument('-l', '--limit', type=int, default=None,
+                        help='stop after this many sequence windows of length '
+                        '2k-1 (for debugging or profiling)')
     parser.add_argument('input_sequence_filename', help='The name of the input'
-                        ' FAST[AQ] sequence file.')
+                        ' FASTA sequence file.')
     return parser
 
 
@@ -62,16 +68,33 @@ def get_windows(sequence, ksize):
         yield sequence[minpos:maxpos]
 
 
-def get_mutations(sequence, ksize):
+def get_mutations(record, ksize, limit=None):
     """
     Generate all mutations of the middle nucleotide of the sequence.
     """
     i = ksize - 1
-    for window in get_windows(sequence, ksize):
+    for j, window in enumerate(get_windows(record.sequence, ksize)):
         assert len(window) == (2 * ksize) - 1
+        if j > 0 and j % 100000 == 0:
+            perc = float(j) / 1000000.0
+            khmer_logger.log_info('  processed {:.1f} Mb of sequence {}'.format(perc, record.name.split()[0]))
+            if limit is not None and j >= limit:
+                break
         for nucl in 'ACGT':
-            if nucl != sequence[i]:
-                yield sequence[:i] + nucl + sequence[i+1:]
+            if nucl != window[i]:
+                yield window[:i] + nucl + window[i+1:]
+
+
+def count_mutation_collisions(args, nodegraph):
+    total = 0
+    hits = 0
+    for i, record in enumerate(screed.open(args.input_sequence_filename)):
+        for mutatedseq in get_mutations(record, args.ksize, args.limit):
+            for kmer in nodegraph.get_kmers(mutatedseq):
+                total += 1
+                if nodegraph.get(kmer) > 0:
+                    hits += 1
+    print(total, hits, float(hits) / float(total))
 
 
 def main(args):
@@ -82,15 +105,9 @@ def main(args):
     nodegraph.consume_fasta(args.input_sequence_filename)
 
     khmer_logger.log_info('generating mutations')
-    total = 0
-    hits = 0
-    for i, record in enumerate(screed.open(args.input_sequence_filename)):
-        for mutatedseq in get_mutations(record.sequence, args.ksize):
-            for kmer in nodegraph.get_kmers(mutatedseq):
-                total += 1
-                if nodegraph.get(kmer) > 0:
-                    hits += 1
-    print(total, hits)
+    count_mutation_collisions(args, nodegraph)
+    #cProfile.runctx('func(r, ng)', {'r': args, 'func': count_mutation_collisions, 'ng': nodegraph}, {});
+
 
 
 if __name__ == '__main__':
