@@ -198,7 +198,6 @@ int main(int argc, const char **argv)
     if (argc > optind + 1) {
         refrfile = argv[optind + 1];
     }
-    std::cerr << "DEBUG " << infile << " " << refrfile << std::endl;
 
     std::cerr << "allocating nodegraph" << std::endl;
     vint tablesizes = get_n_primes_near_x(targetsize, numtables);
