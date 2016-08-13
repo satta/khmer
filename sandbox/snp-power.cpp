@@ -1,4 +1,4 @@
-// g++ --std=c++11 -I ../lib -I ../third-party/seqan/core/include/ -o snp-power snp-power.cpp ../lib/liboxli.a
+// g++ --std=c++11 -O3 -I ../lib -I ../third-party/seqan/core/include/ -o snp-power snp-power.cpp ../lib/liboxli.a
 
 #include <assert.h>
 #include <getopt.h>
@@ -142,7 +142,7 @@ void count_mutation_collisions(Hashbits& nodegraph, IParser *parser, int k,
 
 void print_usage(std::ostream& stream = std::cerr)
 {
-    stream << "Usage: snp-power [options] genome.fa" << std::endl;
+    stream << "Usage: snp-power [options] seqs.fa [genome.fa]" << std::endl;
     stream << "  options:" << std::endl;
     stream << "    -h    print this help message and exit" << std::endl;
     stream << "    -k    k-mer length (default: 31)" << std::endl;
@@ -194,6 +194,11 @@ int main(int argc, const char **argv)
     }
 
     std::string infile(argv[optind]);
+    std::string refrfile(argv[optind]);
+    if (argc > optind + 1) {
+        refrfile = argv[optind + 1];
+    }
+    std::cerr << "DEBUG " << infile << " " << refrfile << std::endl;
 
     std::cerr << "allocating nodegraph" << std::endl;
     vint tablesizes = get_n_primes_near_x(targetsize, numtables);
@@ -202,7 +207,7 @@ int main(int argc, const char **argv)
     std::cerr << "consuming input" << std::endl;
     unsigned int seqs_consumed = 0;
     unsigned long long kmers_consumed = 0;
-    nodegraph.consume_fasta(infile, seqs_consumed, kmers_consumed);
+    nodegraph.consume_fasta(refrfile, seqs_consumed, kmers_consumed);
     std::cerr << "consumed " << seqs_consumed << " sequence(s) and "
               << kmers_consumed << " " << k << "-mers" << std::endl;
 
