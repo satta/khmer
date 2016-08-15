@@ -20,6 +20,13 @@ typedef std::vector<HashIntoType> vint;
 typedef std::vector<std::string> vstring;
 typedef Read Sequence;
 
+struct MutSeq
+{
+    std::string original;
+    std::string mutated;
+};
+typedef std::vector<struct MutSeq> vmutseq;
+
 class Mutator
 {
 public:
@@ -31,7 +38,7 @@ public:
     Mutator(Sequence& sequence, int ksize)
         : seq(sequence), k(ksize), i(k - 1), nucl("ACGT") {}
 
-    bool next_mutated_seqs(vstring& mutseqs)
+    bool next_mutated_seqs(vmutseq& mutseqs)
     {
         mutseqs.clear();
         if (i + k > seq.sequence.length()) {
@@ -44,8 +51,9 @@ public:
 
         for (auto bp : nucl) {
             if (window[k - 1] != bp) {
-                std::string mutseq = window;
-                mutseq[k - 1] = bp;
+                std::string mutated = window;
+                mutated[k - 1] = bp;
+                struct MutSeq mutseq = {window, mutated};
                 mutseqs.push_back(mutseq);
             }
         }
@@ -98,7 +106,7 @@ vint get_n_primes_near_x(int x, int n)
 }
 
 void count_mutation_collisions(Hashbits& nodegraph, IParser *parser, int k,
-                               unsigned long limit)
+                               unsigned long limit, bool debug)
 {
     unsigned long long total = 0;
     unsigned long hits = 0;
@@ -113,24 +121,26 @@ void count_mutation_collisions(Hashbits& nodegraph, IParser *parser, int k,
         }
 
         Mutator m(seq, k);
-        vstring mutseqs;
+        vmutseq mutseqs;
         while (m.next_mutated_seqs(mutseqs) && (limit == 0 || count < limit)) {
             count++;
             if (count % 100000 == 0) {
                 std::cerr << "  processed " << (float)count / (float)1000
                           << " Kb of sequence" << std::endl;
             }
-            vstring::iterator it;
-            for (it = mutseqs.begin(); it < mutseqs.end(); it++) {
-                std::string mutseq = *it;
+
+            for (auto mutseq : mutseqs) {
                 vstring kmers;
-                nodegraph.get_kmers(mutseq, kmers);
-                vstring::iterator kit;
-                for (kit = kmers.begin(); kit < kmers.end(); kit++) {
-                    std::string kmer = *kit;
+                nodegraph.get_kmers(mutseq.mutated, kmers);
+                for (auto kmer : kmers) {
                     total++;
                     if (nodegraph.get_count(kmer.c_str()) > 0) {
                         hits++;
+                        if (debug) {
+                            std::cerr << "DEBUG orig seq: " << mutseq.original << std::endl;
+                            std::cerr << "DEBUG mutd seq: " << mutseq.mutated << std::endl;
+                            std::cerr << "DEBUG     kmer: " << kmer << std::endl << std::endl;
+                        }
                     }
                 }
             }
@@ -145,6 +155,7 @@ void print_usage(std::ostream& stream = std::cerr)
     stream << "Usage: snp-power [options] seqs.fa [genome.fa]" << std::endl;
     stream << "  options:" << std::endl;
     stream << "    -h    print this help message and exit" << std::endl;
+    stream << "    -d    print debugging output" << std::endl;
     stream << "    -k    k-mer length (default: 31)" << std::endl;
     stream << "    -x    approx table size (default: 5e8)" << std::endl;
     stream << "    -N    num tables (default: 4)" << std::endl;
@@ -163,16 +174,20 @@ int main(int argc, const char **argv)
         return 0;
     }
 
+    bool debug = false;
     int k = 31;
     int targetsize = 5e8;
     int numtables = 4;
     unsigned long limit = 0;
 
     char c;
-    while ((c = getopt (argc, (char *const *)argv, "hk:x:N:l:")) != -1) {
+    while ((c = getopt (argc, (char *const *)argv, "hdk:x:N:l:")) != -1) {
         if (c == 'h') {
             print_usage(std::cout);
             return 0;
+        }
+        else if (c == 'd') {
+            debug = true;
         }
         else if (c == 'k') {
             k = atoi(optarg);
@@ -212,7 +227,7 @@ int main(int argc, const char **argv)
 
     std::cerr << "generating mutations" << std::endl;
     IParser *parser = IParser::get_parser(infile);
-    count_mutation_collisions(nodegraph, parser, k, limit);
+    count_mutation_collisions(nodegraph, parser, k, limit, debug);
     delete parser;
 
     return 0;
