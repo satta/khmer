@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "hashbits.hh"
+#include "counting.hh"
 #include "khmer.hh"
 #include "khmer_exception.hh"
 #include "read_parsers.hh"
@@ -16,18 +16,64 @@
 using namespace khmer;
 using namespace read_parsers;
 
-typedef std::vector<HashIntoType> vint;
+typedef std::vector<int> vint;
 typedef std::vector<std::string> vstring;
 typedef Read Sequence;
 
-struct MutSeq
+/// A nucleotide that we have mutated in silico, along with the upstream and
+/// downstream nucleotides necessary to construct all k-mers overlapping with
+/// the mutated nucleotide.
+class MutatedKmerInterval
 {
-    std::string original;
-    std::string mutated;
-};
-typedef std::vector<struct MutSeq> vmutseq;
+public:
+    std::string& original;
+    std::string& mutseq;
+    unsigned long unique_kmer_count;
+    vint kmer_abund;
 
-class Mutator
+    MutatedKmerInterval(std::string& sequence, std::string& mutatedseq)
+        : original(sequence), mutseq(mutatedseq) {}
+
+    unsigned long total_kmer_count() {
+        return kmer_abund.size();
+    }
+
+    unsigned long non_unique_kmer_count() {
+        return total_kmer_count() - unique_kmer_count;
+    }
+
+    void check_mutated_kmers(CountingHash& countgraph, bool debug)
+    {
+        vstring kmers;
+        countgraph.get_kmers(mutseq, kmers);
+        int kmer_offset = 0;
+        for (auto kmer : kmers) {
+            int kmerfreq = countgraph.get_count(kmer.c_str());
+            kmer_abund.push_back(kmerfreq);
+            if (kmerfreq == 0) {
+                unique_kmer_count++;
+            }
+            else {
+                if (debug) {
+                    std::cerr << "DEBUG orig seq: " << original << std::endl;
+                    std::cerr << "DEBUG mutd seq: " << mutseq << std::endl;
+                    std::cerr << "DEBUG         : ";
+                    for (int i = 0; i < kmer_offset; i++) {
+                        std::cerr << ' ';
+                    }
+                    std::cerr << kmer << std::endl << std::endl;
+                }
+            }
+            kmer_offset++;
+        }
+    }
+};
+typedef std::vector<MutatedKmerInterval> vmut;
+
+/// A nucleotide of interest, along with k - 1 nucleotides on either side; in
+/// other words, the interval containing all k-mers overlapping with the
+/// nucleotide of interest.
+class KmerInterval
 {
 public:
     Sequence& seq;
@@ -35,10 +81,10 @@ public:
     int i;
     std::string nucl;
 
-    Mutator(Sequence& sequence, int ksize)
+    KmerInterval(Sequence& sequence, int ksize)
         : seq(sequence), k(ksize), i(k - 1), nucl("ACGT") {}
 
-    bool next_mutated_seqs(vmutseq& mutseqs)
+    bool next_mutated_seqs(vmut& mutseqs)
     {
         mutseqs.clear();
         if (i + k > seq.sequence.length()) {
@@ -47,15 +93,12 @@ public:
 
         int minpos = i - k + 1;
         int len = (2*k) - 1;
-        std::string window = seq.sequence.substr(minpos, len);
-
+        std::string subseq = seq.sequence.substr(minpos, len);
         for (auto bp : nucl) {
-            if (window[k - 1] != bp) {
-                std::string mutated = window;
-                mutated[k - 1] = bp;
-                struct MutSeq mutseq = {window, mutated};
-                mutseqs.push_back(mutseq);
-            }
+            std::string mutated = subseq;
+            mutated[k - 1] = bp;
+            MutatedKmerInterval snv(subseq, mutated);
+            mutseqs.push_back(snv);
         }
 
         i++;
@@ -83,9 +126,9 @@ bool isprime(int n)
     return true;
 }
 
-vint get_n_primes_near_x(int x, int n)
+std::vector<HashIntoType> get_n_primes_near_x(int x, int n)
 {
-    vint primes;
+    std::vector<HashIntoType> primes;
     if (x == 1 && n == 1) {
         primes.push_back(1);
         return primes;
@@ -105,13 +148,16 @@ vint get_n_primes_near_x(int x, int n)
     return primes;
 }
 
-void count_mutation_collisions(Hashbits& nodegraph, IParser *parser, int k,
+void count_mutation_collisions(CountingHash& countgraph, IParser *parser, int k,
                                unsigned long limit, bool debug)
 {
-    unsigned long long total = 0;
-    unsigned long hits = 0;
     Sequence seq;
-    unsigned long count = 0;
+    unsigned long nucl_count = 0;
+
+    int kmers_hit = 0;
+    int kmers_unique = 0;
+    std::vector<int> uniq_k_per_snv;
+    std::vector<int> uniq_k_per_nucl;
 
     while (!parser->is_complete()) {
         try {
@@ -120,33 +166,28 @@ void count_mutation_collisions(Hashbits& nodegraph, IParser *parser, int k,
             break;
         }
 
-        Mutator m(seq, k);
-        vmutseq mutseqs;
-        while (m.next_mutated_seqs(mutseqs) && (limit == 0 || count < limit)) {
-            count++;
-            if (count % 100000 == 0) {
-                std::cerr << "  processed " << (float)count / (float)1000
+        KmerInterval m(seq, k);
+        vmut mutseqs;
+        while (m.next_mutated_seqs(mutseqs) && (limit == 0 || nucl_count < limit)) {
+            nucl_count++;
+            if (nucl_count % 100000 == 0) {
+                std::cerr << "  processed " << (float)nucl_count / (float)1000
                           << " Kb of sequence" << std::endl;
             }
 
+            assert(mutseqs.size() == 3);
+            int nucl_uniq_kmers = 0;
             for (auto mutseq : mutseqs) {
-                vstring kmers;
-                nodegraph.get_kmers(mutseq.mutated, kmers);
-                for (auto kmer : kmers) {
-                    total++;
-                    if (nodegraph.get_count(kmer.c_str()) > 0) {
-                        hits++;
-                        if (debug) {
-                            std::cerr << "DEBUG orig seq: " << mutseq.original << std::endl;
-                            std::cerr << "DEBUG mutd seq: " << mutseq.mutated << std::endl;
-                            std::cerr << "DEBUG     kmer: " << kmer << std::endl << std::endl;
-                        }
-                    }
-                }
+                mutseq.check_mutated_kmers(countgraph, debug);
+                kmers_unique += mutseq.unique_kmer_count;
+                nucl_uniq_kmers += mutseq.unique_kmer_count;
+                kmers_hit += mutseq.non_unique_kmer_count();
+                uniq_k_per_snv.push_back(mutseq.unique_kmer_count);
             }
+            uniq_k_per_nucl.push_back(nucl_uniq_kmers);
         }
     }
-    std::cout << total << " " << hits << " " << (float)hits / (float)total
+    std::cout << (kmers_hit + kmers_unique) << " " << kmers_hit << " " << (float)kmers_hit / (float)(kmers_hit + kmers_unique)
               << std::endl;
 }
 
@@ -214,20 +255,21 @@ int main(int argc, const char **argv)
         refrfile = argv[optind + 1];
     }
 
-    std::cerr << "allocating nodegraph" << std::endl;
-    vint tablesizes = get_n_primes_near_x(targetsize, numtables);
-    Hashbits nodegraph(k, tablesizes);
+
+    std::cerr << "allocating countgraph" << std::endl;
+    std::vector<HashIntoType> tablesizes = get_n_primes_near_x(targetsize, numtables);
+    CountingHash countgraph(k, tablesizes);
 
     std::cerr << "consuming input" << std::endl;
     unsigned int seqs_consumed = 0;
     unsigned long long kmers_consumed = 0;
-    nodegraph.consume_fasta(refrfile, seqs_consumed, kmers_consumed);
+    countgraph.consume_fasta(refrfile, seqs_consumed, kmers_consumed);
     std::cerr << "consumed " << seqs_consumed << " sequence(s) and "
               << kmers_consumed << " " << k << "-mers" << std::endl;
 
     std::cerr << "generating mutations" << std::endl;
     IParser *parser = IParser::get_parser(infile);
-    count_mutation_collisions(nodegraph, parser, k, limit, debug);
+    count_mutation_collisions(countgraph, parser, k, limit, debug);
     delete parser;
 
     return 0;
