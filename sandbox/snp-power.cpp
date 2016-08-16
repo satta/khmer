@@ -1,4 +1,4 @@
-// g++ --std=c++11 -O3 -I ../lib -I ../third-party/seqan/core/include/ -o snp-power snp-power.cpp ../lib/liboxli.a
+// g++ -Wall --std=c++11 -O3 -I ../lib -I ../third-party/seqan/core/include/ -o snp-power snp-power.cpp ../lib/liboxli.a
 
 #include <assert.h>
 #include <getopt.h>
@@ -27,25 +27,19 @@ class MutatedKmerInterval
 {
 public:
     std::string& original;
-    std::string& mutseq;
+    std::string mutseq;
     unsigned long unique_kmer_count;
     vint kmer_abund;
 
-    MutatedKmerInterval(std::string& sequence, std::string& mutatedseq)
-        : original(sequence), mutseq(mutatedseq) {}
-
-    unsigned long total_kmer_count() {
-        return kmer_abund.size();
-    }
-
-    unsigned long non_unique_kmer_count() {
-        return total_kmer_count() - unique_kmer_count;
-    }
+    explicit MutatedKmerInterval(const MutatedKmerInterval&) = default;
+    MutatedKmerInterval(std::string& sequence, std::string mutatedseq)
+        : original(sequence), mutseq(mutatedseq), unique_kmer_count(0) {}
 
     void check_mutated_kmers(CountingHash& countgraph, bool debug)
     {
         vstring kmers;
         countgraph.get_kmers(mutseq, kmers);
+        int nkmers = kmers.size();
         int kmer_offset = 0;
         for (auto kmer : kmers) {
             int kmerfreq = countgraph.get_count(kmer.c_str());
@@ -66,6 +60,7 @@ public:
             }
             kmer_offset++;
         }
+        assert(kmer_abund.size() == nkmers);
     }
 };
 typedef std::vector<MutatedKmerInterval> vmut;
@@ -76,35 +71,57 @@ typedef std::vector<MutatedKmerInterval> vmut;
 class KmerInterval
 {
 public:
-    Sequence& seq;
+    std::string& sequence;
     int k;
-    int i;
     std::string nucl;
+    vmut mutseqs;
 
-    KmerInterval(Sequence& sequence, int ksize)
-        : seq(sequence), k(ksize), i(k - 1), nucl("ACGT") {}
-
-    bool next_mutated_seqs(vmut& mutseqs)
+    KmerInterval(std::string& seq, int k) : sequence(seq), k(k), nucl("ACGT")
     {
-        mutseqs.clear();
-        if (i + k > seq.sequence.length()) {
-            return false;
-        }
-
-        int minpos = i - k + 1;
-        int len = (2*k) - 1;
-        std::string subseq = seq.sequence.substr(minpos, len);
         for (auto bp : nucl) {
-            std::string mutated = subseq;
-            mutated[k - 1] = bp;
-            MutatedKmerInterval snv(subseq, mutated);
-            mutseqs.push_back(snv);
+            if (bp != sequence[k - 1]) {
+                std::string mutated = sequence;
+                mutated[k - 1] = bp;
+                MutatedKmerInterval snv(sequence, mutated);
+                mutseqs.push_back(snv);
+            }
         }
+        assert(mutseqs.size() == 3);
+    }
 
-        i++;
-        return true;
+    void check_mutated_kmers(CountingHash& countgraph, bool debug)
+    {
+        for (auto& snv : mutseqs) {
+            snv.check_mutated_kmers(countgraph, debug);
+            assert(snv.kmer_abund.size() == k);
+        }
     }
 };
+
+std::ostream& operator<<(std::ostream& os, const KmerInterval& ki)
+{
+    os << '>' << ki.sequence << std::endl;
+    for (int i = 0; i < ki.k; i++) {
+        os << ' ';
+    }
+    os << '|' << std::endl;
+
+    for (auto& snv : ki.mutseqs) {
+        bool first = true;
+        for (auto kmerfreq : snv.kmer_abund) {
+            if (first) {
+                first = false;
+            }
+            else {
+                os << ' ';
+            }
+            os << kmerfreq;
+        }
+        os << std::endl;
+    }
+
+    return os;
+}
 
 bool isprime(int n)
 {
@@ -154,11 +171,6 @@ void count_mutation_collisions(CountingHash& countgraph, IParser *parser, int k,
     Sequence seq;
     unsigned long nucl_count = 0;
 
-    int kmers_hit = 0;
-    int kmers_unique = 0;
-    std::vector<int> uniq_k_per_snv;
-    std::vector<int> uniq_k_per_nucl;
-
     while (!parser->is_complete()) {
         try {
             seq = parser->get_next_read();
@@ -166,29 +178,24 @@ void count_mutation_collisions(CountingHash& countgraph, IParser *parser, int k,
             break;
         }
 
-        KmerInterval m(seq, k);
-        vmut mutseqs;
-        while (m.next_mutated_seqs(mutseqs) && (limit == 0 || nucl_count < limit)) {
+        for (unsigned long i = k - 1; i + k <= seq.sequence.length(); i++) {
+            unsigned long minpos = i - k + 1;
+            int subseqlen = (2*k) - 1;
+            std::string interval = seq.sequence.substr(minpos, subseqlen);
+            KmerInterval ki(interval, k);
+            ki.check_mutated_kmers(countgraph, debug);
+            std::cout << ki;
+
             nucl_count++;
             if (nucl_count % 100000 == 0) {
                 std::cerr << "  processed " << (float)nucl_count / (float)1000
                           << " Kb of sequence" << std::endl;
             }
-
-            assert(mutseqs.size() == 3);
-            int nucl_uniq_kmers = 0;
-            for (auto mutseq : mutseqs) {
-                mutseq.check_mutated_kmers(countgraph, debug);
-                kmers_unique += mutseq.unique_kmer_count;
-                nucl_uniq_kmers += mutseq.unique_kmer_count;
-                kmers_hit += mutseq.non_unique_kmer_count();
-                uniq_k_per_snv.push_back(mutseq.unique_kmer_count);
+            if (limit > 0 && nucl_count > limit) {
+                return;
             }
-            uniq_k_per_nucl.push_back(nucl_uniq_kmers);
         }
     }
-    std::cout << (kmers_hit + kmers_unique) << " " << kmers_hit << " " << (float)kmers_hit / (float)(kmers_hit + kmers_unique)
-              << std::endl;
 }
 
 void print_usage(std::ostream& stream = std::cerr)
