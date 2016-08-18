@@ -49,13 +49,13 @@ public:
             }
             else {
                 if (debug) {
-                    std::cerr << "DEBUG orig seq: " << original << std::endl;
-                    std::cerr << "DEBUG mutd seq: " << mutseq << std::endl;
+                    std::cerr << "DEBUG orig seq: " << original << '\n';
+                    std::cerr << "DEBUG mutd seq: " << mutseq << '\n';
                     std::cerr << "DEBUG         : ";
                     for (int i = 0; i < kmer_offset; i++) {
                         std::cerr << ' ';
                     }
-                    std::cerr << kmer << std::endl << std::endl;
+                    std::cerr << kmer << "\n\n";
                 }
             }
             kmer_offset++;
@@ -100,11 +100,11 @@ public:
 
 std::ostream& operator<<(std::ostream& os, const KmerInterval& ki)
 {
-    os << '>' << ki.sequence << std::endl;
+    os << '>' << ki.sequence << '\n';
     for (int i = 0; i < ki.k; i++) {
         os << ' ';
     }
-    os << '|' << std::endl;
+    os << '|' << '\n';
 
     for (auto& snv : ki.mutseqs) {
         bool first = true;
@@ -117,7 +117,7 @@ std::ostream& operator<<(std::ostream& os, const KmerInterval& ki)
             }
             os << kmerfreq;
         }
-        os << std::endl;
+        os << '\n';
     }
 
     return os;
@@ -200,14 +200,14 @@ void count_mutation_collisions(CountingHash& countgraph, IParser *parser, int k,
 
 void print_usage(std::ostream& stream = std::cerr)
 {
-    stream << "Usage: snp-power [options] seqs.fa [genome.fa]" << std::endl;
-    stream << "  options:" << std::endl;
-    stream << "    -h    print this help message and exit" << std::endl;
-    stream << "    -d    print debugging output" << std::endl;
-    stream << "    -k    k-mer length (default: 31)" << std::endl;
-    stream << "    -x    approx table size (default: 5e8)" << std::endl;
-    stream << "    -N    num tables (default: 4)" << std::endl;
-    stream << "    -l    limit number of positions to process" << std::endl;
+    stream << "Usage: snp-power [options] seqs.fa [genome.fa]\n";
+    stream << "  options:\n";
+    stream << "    -h    print this help message and exit\n";
+    stream << "    -d    print debugging output\n";
+    stream << "    -k    k-mer length (default: 31)\n";
+    stream << "    -x    approx table size (default: 5e8)\n";
+    stream << "    -N    num tables (default: 4)\n";
+    stream << "    -l    limit number of positions to process\n";
 }
 
 int main(int argc, const char **argv)
@@ -250,7 +250,7 @@ int main(int argc, const char **argv)
             limit = atoi(optarg);
         }
         else {
-            std::cerr << "Unknown option '" << c << "'" << std::endl;
+            std::cerr << "Unknown option '" << c << "'\n";
             print_usage();
             return 1;
         }
