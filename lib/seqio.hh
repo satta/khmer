@@ -97,19 +97,13 @@ class Read
         std::string sequence;
         std::string quality;
 
-        void reset();
+        inline void reset();
 };
 typedef std::pair<Read,Read> ReadPair;
 
 // -----------------------------------------------------------------------------
 // Parser base class
 // -----------------------------------------------------------------------------
-
-typedef enum {
-    PAIR_MODE_ALLOW_UNPAIRED = 0,
-    PAIR_MODE_IGNORE_UNPAIRED,
-    PAIR_MODE_ERROR_ON_UNPAIRED
-} PairMode;
 
 class Parser
 {
@@ -131,6 +125,12 @@ class Parser
         );
 
     public:
+        typedef enum {
+            PAIR_MODE_ALLOW_UNPAIRED = 0,
+            PAIR_MODE_IGNORE_UNPAIRED,
+            PAIR_MODE_ERROR_ON_UNPAIRED
+        } PairMode;
+
         Parser();
         ~Parser();
         virtual bool is_complete() = 0;
@@ -158,7 +158,25 @@ class FastxParser : public Parser
 
         bool is_complete();
         void imprint_next_read(Read& read);
-}; // Class FastxParser
+};
+
+// -----------------------------------------------------------------------------
+// Fasta/Fastq parser
+// -----------------------------------------------------------------------------
+
+class BamParser : public Parser
+{
+    protected:
+        struct Handle;
+        Handle* _handle;
+
+    public:
+        explicit BamParser(const char * filename);
+        ~BamParser();
+
+        bool is_complete();
+        void imprint_next_read(Read& read);
+};
 
 /*
 

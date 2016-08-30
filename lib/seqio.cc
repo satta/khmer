@@ -49,6 +49,17 @@ namespace sequence_io
 {
 
 // -----------------------------------------------------------------------------
+// Read class
+// -----------------------------------------------------------------------------
+inline void Read::reset()
+{
+    name.clear();
+    annotations.clear();
+    sequence.clear();
+    quality.clear();
+}
+
+// -----------------------------------------------------------------------------
 // Parser base class
 // -----------------------------------------------------------------------------
 
@@ -81,7 +92,7 @@ Parser::~Parser()
     regfree(&_read_2_pattern);
 }
 
-void Parser::imprint_next_read_pair(ReadPair& pair, PairMode mode)
+void Parser::imprint_next_read_pair(ReadPair& pair, Parser::PairMode mode)
 {
     if (mode == PAIR_MODE_IGNORE_UNPAIRED) {
         _imprint_next_read_pair_in_ignore_mode(pair);
@@ -185,7 +196,7 @@ bool Parser::_is_valid_read_pair(ReadPair& pair, regmatch_t& m1, regmatch_t& m2)
 struct FastxParser::Handle
 {
     seqan::SequenceStream stream;
-    uint32_t seqan_spin_lock;
+    uint32_t fastx_spin_lock;
 };
 
 FastxParser::FastxParser(char const * filename) : Parser()
@@ -202,7 +213,7 @@ FastxParser::FastxParser(char const * filename) : Parser()
         throw InvalidStream(message);
     }
     __asm__ __volatile__ ("" ::: "memory");
-    _handle->seqan_spin_lock = 0;
+    _handle->fastx_spin_lock = 0;
 }
 
 FastxParser::~FastxParser()
@@ -220,8 +231,8 @@ void FastxParser::imprint_next_read(Read& read)
 {
     read.reset();
     int ret = -1;
-    const char *invalid_read_exc = NULL;
-    while (!__sync_bool_compare_and_swap(& _handle->seqan_spin_lock, 0, 1));
+    const char * invalid_read_exc = NULL;
+    while (!__sync_bool_compare_and_swap(& _handle->fastx_spin_lock, 0, 1));
     bool atEnd = seqan::atEnd(_handle->stream);
     if (!atEnd) {
         ret = seqan::readRecord(read.name, read.sequence, read.quality,
@@ -245,7 +256,92 @@ void FastxParser::imprint_next_read(Read& read)
         }
     }
     __asm__ __volatile__ ("" ::: "memory");
-    _handle->seqan_spin_lock = 0;
+    _handle->fastx_spin_lock = 0;
+    // Throw any error in the read, even if we're at the end
+    if (invalid_read_exc != NULL) {
+        throw InvalidRead(invalid_read_exc);
+    }
+    // Throw NoMoreReadsAvailable if none of the above errors were raised, even
+    // if ret == 0
+    if (atEnd) {
+        throw NoMoreReadsAvailable();
+    }
+    // Catch-all error in readRecord that isn't one of the above
+    if (ret != 0) {
+        throw StreamReadError();
+    }
+}
+
+// -----------------------------------------------------------------------------
+// BAM parser
+// -----------------------------------------------------------------------------
+
+struct BamParser::Handle
+{
+    seqan::BamStream stream;
+    uint32_t bam_spin_lock;
+};
+
+BamParser::BamParser(char const * filename) : Parser()
+{
+    _handle = new BamParser::Handle();
+    seqan::open(_handle->stream, filename);
+    if (!seqan::isGood(_handle->stream)) {
+        std::string message = "Could not open ";
+        message = message + filename + " for reading.";
+        throw InvalidStream(message);
+    } else if (seqan::atEnd(_handle->stream)) {
+        std::string message = "File ";
+        message = message + filename + " does not contain any sequences!";
+        throw InvalidStream(message);
+    }
+    __asm__ __volatile__ ("" ::: "memory");
+    _handle->bam_spin_lock = 0;
+}
+
+BamParser::~BamParser()
+{
+    seqan::close(_handle->stream);
+    delete _handle;
+}
+
+bool BamParser::is_complete()
+{
+    return !seqan::isGood(_handle->stream) || seqan::atEnd(_handle->stream);
+}
+
+void BamParser::imprint_next_read(Read& read)
+{
+    read.reset();
+    int ret = -1;
+    const char * invalid_read_exc = NULL;
+    while (!__sync_bool_compare_and_swap(& _handle->bam_spin_lock, 0, 1));
+    bool atEnd = seqan::atEnd(_handle->stream);
+    if (!atEnd) {
+        seqan::BamAlignmentRecord record;
+        readRecord(record, _handle->stream);
+        read.name = seqan::toCString(record.qName);
+        read.sequence = seqan::toCString(record.seq);
+        read.quality = seqan::toCString(record.qual);
+
+        // Detect if we're parsing something w/ qualities on the first read
+        // only
+        if (_num_reads == 0 && read.quality.length() != 0) {
+            _have_qualities = true;
+        }
+
+        // Handle error cases, or increment number of reads on success
+        if (read.sequence.length() == 0) {
+            invalid_read_exc = "Sequence is empty";
+        } else if (_have_qualities && (read.sequence.length() != \
+                                       read.quality.length())) {
+            invalid_read_exc = "Sequence and quality lengths differ";
+        } else {
+            _num_reads++;
+        }
+    }
+    __asm__ __volatile__ ("" ::: "memory");
+    _handle->bam_spin_lock = 0;
     // Throw any error in the read, even if we're at the end
     if (invalid_read_exc != NULL) {
         throw InvalidRead(invalid_read_exc);
