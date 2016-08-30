@@ -1,7 +1,7 @@
 /*
 This file is part of khmer, https://github.com/dib-lab/khmer/, and is
 Copyright (C) 2010-2015, Michigan State University.
-Copyright (C) 2015, The Regents of the University of California.
+Copyright (C) 2015-2016, The Regents of the University of California.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,11 +41,11 @@ Contact: khmer-project@idyll.org
 #include "hashbits.hh"
 #include "hashtable.hh"
 #include "khmer_exception.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 void Hashbits::save(std::string outfilename)
 {

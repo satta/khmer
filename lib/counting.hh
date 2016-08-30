@@ -1,7 +1,7 @@
 /*
 This file is part of khmer, https://github.com/dib-lab/khmer/, and is
 Copyright (C) 2010-2015, Michigan State University.
-Copyright (C) 2015, The Regents of the University of California.
+Copyright (C) 2015-2016, The Regents of the University of California.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -52,16 +52,15 @@ Contact: khmer-project@idyll.org
 
 namespace khmer
 {
+
+// Is there a benefit of using these prototypes rather than including the
+// relevant header files? Are there cyclic dependencies?
 class Hashbits;
-
-namespace read_parsers
+namespace seqio
 {
-struct IParser;
-}  // namespace read_parsers
-}  // namespace khmer
+    class Parser;
+}
 
-namespace khmer
-{
 typedef std::map<HashIntoType, BoundedCounterType> KmerCountMap;
 
 class CountingHashFile;
@@ -276,7 +275,7 @@ public:
 
     BoundedCounterType get_max_count(const std::string &s);
 
-    HashIntoType * abundance_distribution(read_parsers::IParser * parser,
+    HashIntoType * abundance_distribution(seqio::Parser * parser,
                                           Hashbits * tracking);
     HashIntoType * abundance_distribution(std::string filename,
                                           Hashbits * tracking);

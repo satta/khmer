@@ -45,19 +45,8 @@ Contact: khmer-project@idyll.org
 namespace khmer
 {
 
-namespace sequence_io
+namespace seqio
 {
-
-// -----------------------------------------------------------------------------
-// Read class
-// -----------------------------------------------------------------------------
-inline void Read::reset()
-{
-    name.clear();
-    annotations.clear();
-    sequence.clear();
-    quality.clear();
-}
 
 // -----------------------------------------------------------------------------
 // Parser base class
@@ -187,6 +176,16 @@ bool Parser::_is_valid_read_pair(ReadPair& pair, regmatch_t& m1, regmatch_t& m2)
     bool submatch = pair.first.name.substr(0, m1.rm_so) ==
                     pair.second.name.substr(0, m2.rm_so);
     return smatch && ematch && submatch;
+}
+
+size_t Parser::get_num_reads()
+{
+    return _num_reads;
+}
+
+Parser * const get_parser(std::string const& ifile_name)
+{
+    return new FastxParser(ifile_name.c_str());
 }
 
 // -----------------------------------------------------------------------------
@@ -357,6 +356,6 @@ void BamParser::imprint_next_read(Read& read)
     }
 }
 
-} // namespace read_parsers
+} // namespace seqio
 
 } // namespace khmer

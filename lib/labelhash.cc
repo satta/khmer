@@ -45,7 +45,7 @@ Contact: khmer-project@idyll.org
 #include "hashtable.hh"
 #include "khmer_exception.hh"
 #include "labelhash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "subset.hh"
 
 #define IO_BUF_SIZE 250*1000*1000
@@ -55,7 +55,7 @@ Contact: khmer-project@idyll.org
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 /*
  * @camillescott
@@ -70,8 +70,7 @@ LabelHash::consume_fasta_and_tag_with_labels(
     CallbackFn	      callback,	    void *		callback_data
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
+    seqio::Parser * parser = seqio::get_parser(filename);
 
     consume_fasta_and_tag_with_labels(
         parser,
@@ -84,7 +83,7 @@ LabelHash::consume_fasta_and_tag_with_labels(
 
 void
 LabelHash::consume_fasta_and_tag_with_labels(
-    read_parsers:: IParser *  parser,
+    seqio::Parser * parser,
     unsigned int		    &total_reads,   unsigned long long	&n_consumed,
     CallbackFn		    callback,	    void *		callback_data
 )
@@ -155,7 +154,7 @@ void LabelHash::consume_partitioned_fasta_and_tag_with_labels(
     total_reads = 0;
     n_consumed = 0;
 
-    IParser* parser = IParser::get_parser(filename.c_str());
+    seqio::Parser* parser = seqio::get_parser(filename.c_str());
     Read read;
 
     std::string seq = "";

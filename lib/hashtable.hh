@@ -55,20 +55,9 @@ Contact: khmer-project@idyll.org
 #include "khmer.hh"
 #include "khmer_exception.hh"
 #include "kmer_hash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "traversal.hh"
 #include "subset.hh"
-
-namespace khmer
-{
-class CountingHash;
-class Hashtable;
-
-namespace read_parsers
-{
-struct IParser;
-}  // namespace read_parsers
-}  // namespace khmer
 
 #define MAX_KEEPER_SIZE int(1e6)
 
@@ -84,6 +73,7 @@ struct IParser;
 
 namespace khmer
 {
+class CountingHash;
 
 class Hashtable: public
     KmerFactory  		// Base class implementation of a Bloom ht.
@@ -186,7 +176,7 @@ public:
     // Count every k-mer from a stream of FASTA or FASTQ reads,
     // using the supplied parser.
     void consume_fasta(
-        read_parsers:: IParser *	    parser,
+        seqio::Parser *	    parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed
     );
@@ -270,7 +260,7 @@ public:
     // using the supplied parser.
     // Tag certain ones on the connectivity graph.
     void consume_fasta_and_tag(
-        read_parsers:: IParser *	    parser,
+        seqio::Parser * parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed
     );

@@ -48,11 +48,11 @@ Contact: khmer-project@idyll.org
 #include "counting.hh"
 #include "hashtable.hh"
 #include "khmer.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 //
 // check_and_process_read: checks for non-ACGT characters before consuming
@@ -111,21 +111,14 @@ consume_fasta(
     unsigned int	      &total_reads, unsigned long long	&n_consumed
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
-
-    consume_fasta(
-        parser,
-        total_reads, n_consumed
-    );
-
-    delete parser;
+    seqio::Parser * parser = seqio::get_parser(filename);
+    consume_fasta(parser, total_reads, n_consumed);
 }
 
 void
 Hashtable::
 consume_fasta(
-    read_parsers:: IParser *  parser,
+    seqio::Parser * parser,
     unsigned int		    &total_reads, unsigned long long  &n_consumed
 )
 {
@@ -448,21 +441,15 @@ consume_fasta_and_tag(
     unsigned int	      &total_reads, unsigned long long	&n_consumed
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
-
-    consume_fasta_and_tag(
-        parser,
-        total_reads, n_consumed
-    );
-
+    seqio::Parser * parser = seqio::get_parser(filename);
+    consume_fasta_and_tag(parser, total_reads, n_consumed);
     delete parser;
 }
 
 void
 Hashtable::
 consume_fasta_and_tag(
-    read_parsers:: IParser *  parser,
+    seqio::Parser * parser,
     unsigned int		    &total_reads,   unsigned long long	&n_consumed
 )
 {
@@ -524,7 +511,7 @@ void Hashtable::consume_partitioned_fasta(const std::string &filename,
     total_reads = 0;
     n_consumed = 0;
 
-    IParser* parser = IParser::get_parser(filename.c_str());
+    seqio::Parser* parser = seqio::get_parser(filename.c_str());
     Read read;
 
     string seq = "";
@@ -1052,7 +1039,7 @@ unsigned int Hashtable::traverse_linear_path(const Kmer seed_kmer,
     while (to_be_visited.size()) {
         Kmer kmer = to_be_visited.back();
         to_be_visited.pop_back();
-        
+
         visited.insert(kmer);
         size += 1;
 
@@ -1080,4 +1067,3 @@ unsigned int Hashtable::traverse_linear_path(const Kmer seed_kmer,
 }
 
 // vim: set sts=2 sw=2:
-

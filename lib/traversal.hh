@@ -43,7 +43,7 @@ Contact: khmer-project@idyll.org
 #include "khmer.hh"
 
 #include "khmer_exception.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "kmer_hash.hh"
 #include "hashtable.hh"
 

@@ -37,6 +37,7 @@ Contact: khmer-project@idyll.org
 #ifndef SEQ_IO_HH
 #define SEQ_IO_HH
 
+#include <iostream>
 #include <regex.h>
 #include <string>
 
@@ -46,7 +47,7 @@ Contact: khmer-project@idyll.org
 namespace khmer
 {
 
-namespace sequence_io
+namespace seqio
 {
 
 // -----------------------------------------------------------------------------
@@ -97,7 +98,26 @@ class Read
         std::string sequence;
         std::string quality;
 
-        inline void reset();
+        inline void reset()
+        {
+            name.clear();
+            annotations.clear();
+            sequence.clear();
+            quality.clear();
+        }
+
+        inline void write_to(std::ostream& output)
+        {
+            if (quality.length() != 0) {
+                output << "@" << name << std::endl
+                       << sequence << std::endl
+                       << "+" << std::endl
+                       << quality << std::endl;
+            } else {
+                output << ">" << name << std::endl
+                       << sequence << std::endl;
+            }
+        }
 };
 typedef std::pair<Read,Read> ReadPair;
 
@@ -133,6 +153,7 @@ class Parser
 
         Parser();
         ~Parser();
+
         virtual bool is_complete() = 0;
         virtual void imprint_next_read(Read& read) = 0;
         virtual void imprint_next_read_pair(
@@ -140,7 +161,22 @@ class Parser
             PairMode mode = PAIR_MODE_ERROR_ON_UNPAIRED
         );
         size_t get_num_reads();
+
+        // Note: 'get_next_read' exists for legacy reasons.
+        //	     In the long term, it should be eliminated in favor of direct use of
+        //	     'imprint_next_read'. A potentially costly copy-by-value happens
+        //	     upon return.
+        // TODO: Eliminate all calls to 'get_next_read'.
+        // Or switch to C++11 w/ move constructors
+        inline Read get_next_read()
+        {
+            Read the_read;
+            imprint_next_read( the_read );
+            return the_read;
+        }
 };
+
+Parser * const get_parser(std::string const& ifile_name);
 
 // -----------------------------------------------------------------------------
 // Fasta/Fastq parser
@@ -178,10 +214,6 @@ class BamParser : public Parser
         void imprint_next_read(Read& read);
 };
 
-/*
-
-
-
 inline PartitionID _parse_partition_id(std::string name)
 {
     PartitionID p = 0;
@@ -197,17 +229,14 @@ inline PartitionID _parse_partition_id(std::string name)
     if (*s == '\t') {
         p = (PartitionID) atoi(s + 1);
     } else {
-        std::cerr << "consume_partitioned_fasta barfed on read "  << name << "\n";
+        std::cerr << "consume_partitioned_fasta barfed on read " << name << '\n';
         throw khmer_exception();
     }
 
     return p;
 }
 
-*/
-
-
-} // namespace read_parsers
+} // namespace seqio
 
 } // namespace khmer
 

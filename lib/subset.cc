@@ -48,7 +48,7 @@ Contact: khmer-project@idyll.org
 #include "hashtable.hh"
 #include "khmer_exception.hh"
 #include "kmer_hash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "subset.hh"
 
 #define IO_BUF_SIZE 250*1000*1000
@@ -57,7 +57,7 @@ Contact: khmer-project@idyll.org
 // #define VALIDATE_PARTITIONS
 
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 using namespace std;
 
 #if 0
@@ -120,7 +120,7 @@ size_t SubsetPartition::output_partitioned_file(
     CallbackFn		callback,
     void *		callback_data)
 {
-    IParser* parser = IParser::get_parser(infilename);
+    seqio::Parser * parser = seqio::get_parser(infilename);
     ofstream outfile(outputfile.c_str());
 
     unsigned int total_reads = 0;
@@ -208,9 +208,6 @@ size_t SubsetPartition::output_partitioned_file(
             }
         }
     }
-
-    delete parser;
-    parser = NULL;
 
     return partitions.size() + n_singletons;
 }

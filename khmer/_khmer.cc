@@ -56,7 +56,7 @@ Contact: khmer-project@idyll.org
 #include "hllcounter.hh"
 
 using namespace khmer;
-using namespace read_parsers;
+using namespace seqio;
 
 //
 // Python 2/3 compatibility: PyInt and PyLong
@@ -213,7 +213,7 @@ namespace python
 typedef struct {
     PyObject_HEAD
     //! Pointer to the low-level genomic read object.
-    read_parsers:: Read *   read;
+    seqio::Read * read;
 } khmer_Read_Object;
 
 
@@ -332,7 +332,7 @@ static PyTypeObject khmer_Read_Type = {
 typedef struct {
     PyObject_HEAD
     //! Pointer to the low-level parser object.
-    read_parsers:: IParser *  parser;
+    seqio::Parser * parser;
 } khmer_ReadParser_Object;
 
 
@@ -341,7 +341,7 @@ typedef struct {
     //! Pointer to Python parser object for reference counting purposes.
     PyObject *  parent;
     //! Persistent value of pair mode across invocations.
-    int pair_mode;
+    seqio::Parser::PairMode pair_mode;
 } khmer_ReadPairIterator_Object;
 
 
@@ -384,8 +384,7 @@ _ReadParser_new( PyTypeObject * subtype, PyObject * args, PyObject * kwds )
 
     // Wrap the low-level parser object.
     try {
-        myself->parser =
-            IParser:: get_parser( ifile_name );
+        myself->parser = seqio::get_parser(ifile_name);
     } catch (khmer_file_exception &exc) {
         PyErr_SetString( PyExc_OSError, exc.what() );
         return NULL;
@@ -399,7 +398,7 @@ PyObject *
 _ReadParser_iternext( PyObject * self )
 {
     khmer_ReadParser_Object * myself  = (khmer_ReadParser_Object *)self;
-    IParser *       parser  = myself->parser;
+    seqio::Parser *       parser  = myself->parser;
     std::string exc_string;
 
     bool        stop_iteration  = false;
@@ -458,8 +457,8 @@ PyObject *
 _ReadPairIterator_iternext(khmer_ReadPairIterator_Object * myself)
 {
     khmer_ReadParser_Object * parent = (khmer_ReadParser_Object*)myself->parent;
-    IParser    *parser    = parent->parser;
-    uint8_t     pair_mode = myself->pair_mode;
+    seqio::Parser * parser = parent->parser;
+    seqio::Parser::PairMode pair_mode = myself->pair_mode;
 
     ReadPair    the_read_pair;
     bool        stop_iteration  = false;
@@ -568,7 +567,7 @@ static
 PyObject *
 ReadParser_iter_read_pairs(PyObject * self, PyObject * args )
 {
-    int  pair_mode  = IParser:: PAIR_MODE_ERROR_ON_UNPAIRED;
+    seqio::Parser::PairMode pair_mode = seqio::Parser::PAIR_MODE_ERROR_ON_UNPAIRED;
 
     if (!PyArg_ParseTuple( args, "|i", &pair_mode )) {
         return NULL;
@@ -669,7 +668,7 @@ void _init_ReadParser_Type_constants()
     // Place pair mode constants into class dictionary.
     int result;
 
-    PyObject * value = PyLong_FromLong( IParser:: PAIR_MODE_ALLOW_UNPAIRED );
+    PyObject * value = PyLong_FromLong( seqio::Parser:: PAIR_MODE_ALLOW_UNPAIRED );
     if (value == NULL) {
         Py_DECREF(cls_attrs_DICT);
         return;
@@ -682,7 +681,7 @@ void _init_ReadParser_Type_constants()
         return;
     }
 
-    value = PyLong_FromLong( IParser:: PAIR_MODE_IGNORE_UNPAIRED );
+    value = PyLong_FromLong( seqio::Parser:: PAIR_MODE_IGNORE_UNPAIRED );
     if (value == NULL) {
         Py_DECREF(cls_attrs_DICT);
         return;
@@ -695,7 +694,7 @@ void _init_ReadParser_Type_constants()
         return;
     }
 
-    value = PyLong_FromLong( IParser:: PAIR_MODE_ERROR_ON_UNPAIRED );
+    value = PyLong_FromLong( seqio::Parser:: PAIR_MODE_ERROR_ON_UNPAIRED );
     if (value == NULL) {
         Py_DECREF(cls_attrs_DICT);
         return;
@@ -717,7 +716,7 @@ void _init_ReadParser_Type_constants()
 
 
 static
-read_parsers:: IParser *
+seqio::Parser *
 _PyObject_to_khmer_ReadParser( PyObject * py_object )
 {
     // TODO: Add type-checking.
@@ -1025,7 +1024,7 @@ hashset_update(khmer_HashSet_Object * me, PyObject * args)
             return NULL;
         }
         me->hashes->insert(h);
-        
+
         Py_DECREF(item);
         item = PyIter_Next(iterator);
     }
@@ -1353,7 +1352,7 @@ hashtable_consume_fasta_with_reads_parser(khmer_KHashtable_Object * me,
         return NULL;
     }
 
-    read_parsers:: IParser * rparser =
+    seqio::Parser * rparser =
         _PyObject_to_khmer_ReadParser( rparser_obj );
 
     // call the C++ function, and trap signals => Python
@@ -2059,7 +2058,7 @@ hashtable_consume_fasta_and_tag_with_reads_parser(khmer_KHashtable_Object * me,
         return NULL;
     }
 
-    read_parsers:: IParser * rparser = rparser_obj-> parser;
+    seqio::Parser * rparser = rparser_obj-> parser;
 
     // call the C++ function, and trap signals => Python
     const char         *value_exception = NULL;
@@ -3331,7 +3330,7 @@ count_abundance_distribution_with_reads_parser(khmer_KCountingHash_Object * me,
         return NULL;
     }
 
-    read_parsers::IParser *rparser      = rparser_obj->parser;
+    seqio::Parser *rparser              = rparser_obj->parser;
     Hashbits           *hashbits        = tracking_obj->hashbits;
     HashIntoType       *dist            = NULL;
     const char         *value_exception = NULL;
@@ -3390,7 +3389,7 @@ count_abundance_distribution(khmer_KCountingHash_Object * me, PyObject * args)
     const char         *value_exception = NULL;
     const char         *file_exception  = NULL;
     std::string exc_string;
-    
+
     Py_BEGIN_ALLOW_THREADS
     try {
         dist = counting->abundance_distribution(filename, hashbits);
@@ -4014,7 +4013,7 @@ labelhash_consume_fasta_and_tag_with_labels(khmer_KGraphLabels_Object * me,
     unsigned long long  n_consumed      = 0;
     unsigned int        total_reads     = 0;
     std::string exc_string;
-    
+
     //Py_BEGIN_ALLOW_THREADS
     try {
         hb->consume_fasta_and_tag_with_labels(filename, total_reads,

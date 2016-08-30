@@ -1,7 +1,7 @@
 /*
 This file is part of khmer, https://github.com/dib-lab/khmer/, and is
 Copyright (C) 2014-2015, Michigan State University.
-Copyright (C) 2015, The Regents of the University of California.
+Copyright (C) 2015-2016, The Regents of the University of California.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,7 +46,7 @@ Contact: khmer-project@idyll.org
 #include "khmer.hh"
 #include "khmer_exception.hh"
 #include "kmer_hash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -381,21 +381,18 @@ void HLLCounter::consume_fasta(
     unsigned int &total_reads,
     unsigned long long &n_consumed)
 {
-    read_parsers::IParser * parser = read_parsers::IParser::get_parser(filename);
-
+    seqio::Parser * parser = seqio::get_parser(filename);
     consume_fasta(parser, stream_records, total_reads, n_consumed);
-
-    delete parser;
 }
 
 void HLLCounter::consume_fasta(
-    read_parsers::IParser *parser,
+    seqio::Parser *parser,
     bool stream_records,
     unsigned int &      total_reads,
     unsigned long long &    n_consumed)
 {
 
-    read_parsers::Read read;
+    seqio::Read read;
     HLLCounter** counters;
     unsigned int *n_consumed_partial;
     unsigned int *total_reads_partial;
@@ -424,7 +421,7 @@ void HLLCounter::consume_fasta(
                 // Iterate through the reads and consume their k-mers.
                 try {
                     read = parser->get_next_read();
-                } catch (read_parsers::NoMoreReadsAvailable) {
+                } catch (seqio::NoMoreReadsAvailable) {
                     break;
                 }
 
