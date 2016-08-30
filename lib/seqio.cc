@@ -52,7 +52,7 @@ namespace seqio
 // Parser base class
 // -----------------------------------------------------------------------------
 
-Parser::Parser() : _num_reads(0)
+Parser::Parser() : _num_reads(0), _have_qualities(false)
 {
     int haderror;
 

@@ -109,13 +109,13 @@ class Read
         inline void write_to(std::ostream& output)
         {
             if (quality.length() != 0) {
-                output << "@" << name << std::endl
-                       << sequence << std::endl
-                       << "+" << std::endl
-                       << quality << std::endl;
+                output << "@" << name << '\n'
+                       << sequence << '\n'
+                       << "+" << '\n'
+                       << quality << '\n';
             } else {
-                output << ">" << name << std::endl
-                       << sequence << std::endl;
+                output << ">" << name << '\n'
+                       << sequence << '\n';
             }
         }
 };
