@@ -45,11 +45,8 @@ Contact: khmer-project@idyll.org
 
 namespace khmer
 {
-
-
 namespace seqio
 {
-
 
 struct SeqAnParser::Handle {
     seqan::SequenceStream stream;
@@ -132,111 +129,90 @@ SeqAnParser::~SeqAnParser()
 ReadParser * const
 ReadParser::
 get_parser(
-    std::string const	    &ifile_name
+    std::string const     &ifile_name
 )
 {
 
     return new SeqAnParser(ifile_name.c_str());
 }
 
+//------------------------------------------------------------------------------
+// Read parser class
 
-ReadParser::
-ReadParser(
-)
+ReadParser::ReadParser() : _num_reads(0), _have_qualities(false)
 {
-    int regex_rc =
-        regcomp(
-            &_re_read_2_nosub,
-            // ".+(/2| 2:[YN]:[[:digit:]]+:[[:alpha:]]+)$",
-            "^.+(/2| 2:[YN]:[[:digit:]]+:[[:alpha:]]+).{0}",
-            REG_EXTENDED | REG_NOSUB
-        );
-    if (regex_rc) {
-        throw khmer_exception("Could not compile R2 nosub regex");
-    }
-    regex_rc =
-        regcomp(
-            &_re_read_1,
-            "^.+(/1| 1:[YN]:[[:digit:]]+:[[:alpha:]]+).{0}", REG_EXTENDED
-        );
-    if (regex_rc) {
+    int haderror = regcomp(
+        &_read_1_pattern,
+        "^.+(/1| 1:[YN]:[[:digit:]]+:[[:alpha:]]+).{0}",
+        REG_EXTENDED
+    );
+    if (haderror) {
         throw khmer_exception("Could not compile R1 regex");
     }
-    regex_rc =
-        regcomp(
-            &_re_read_2,
-            "^.+(/2| 2:[YN]:[[:digit:]]+:[[:alpha:]]+).{0}", REG_EXTENDED
-        );
-    if (regex_rc) {
+
+    haderror = regcomp(
+        &_read_2_pattern,
+        "^.+(/2| 2:[YN]:[[:digit:]]+:[[:alpha:]]+).{0}",
+        REG_EXTENDED
+    );
+    if (haderror) {
         throw khmer_exception("Could not compile R2 regex");
     }
-    _num_reads = 0;
-    _have_qualities = false;
 }
 
-ReadParser::
-~ReadParser( )
+ReadParser::~ReadParser()
 {
-    regfree( &_re_read_2_nosub );
-    regfree( &_re_read_1 );
-    regfree( &_re_read_2 );
+    regfree(&_read_1_pattern);
+    regfree(&_read_2_pattern);
 }
 
-void
-ReadParser::
-imprint_next_read_pair( ReadPair &the_read_pair, PairMode mode )
+void ReadParser::imprint_next_read_pair(ReadPair& pair, PairMode mode)
 {
-    switch (mode) {
+    if (mode == ReadParser::PAIR_MODE_IGNORE_UNPAIRED) {
+        _imprint_next_read_pair_in_ignore_mode(pair);
+    } else if (mode == ReadParser::PAIR_MODE_ERROR_ON_UNPAIRED) {
+        _imprint_next_read_pair_in_error_mode( pair );
+    }
 #if (0)
-    case ReadParser::PAIR_MODE_ALLOW_UNPAIRED:
-        _imprint_next_read_pair_in_allow_mode( the_read_pair );
-        break;
+    else if (mode == ReadParser::PAIR_MODE_ALLOW_UNPAIRED) {
+        _imprint_next_read_pair_in_allow_mode( pair );
+    }
 #endif
-    case ReadParser::PAIR_MODE_IGNORE_UNPAIRED:
-        _imprint_next_read_pair_in_ignore_mode( the_read_pair );
-        break;
-    case ReadParser::PAIR_MODE_ERROR_ON_UNPAIRED:
-        _imprint_next_read_pair_in_error_mode( the_read_pair );
-        break;
-    default:
-        std::ostringstream oss;
-        oss << "Unknown pair reading mode: " << mode;
-        throw UnknownPairReadingMode(oss.str());
+    else {
+        std::string msg = "Unknown pair reading mode: " + std::to_string(mode);
+        throw UnknownPairReadingMode(msg);
     }
 }
 
+size_t ReadParser::get_num_reads()
+{
+    return _num_reads;
+}
 
 #if (0)
-void
-ReadParser::
-_imprint_next_read_pair_in_allow_mode( ReadPair &the_read_pair )
+void ReadParser::_imprint_next_read_pair_in_allow_mode(ReadPair& pair)
 {
     // TODO: Implement.
-    //	     Probably need caching of reads between invocations
-    //	     and the ability to return pairs which are half empty.
+    //      Probably need caching of reads between invocations
+    //      and the ability to return pairs which are half empty.
 }
 #endif
 
-
-void
-ReadParser::
-_imprint_next_read_pair_in_ignore_mode( ReadPair &the_read_pair )
+void ReadParser:: _imprint_next_read_pair_in_ignore_mode( ReadPair& pair )
 {
-    Read	    &read_1		= the_read_pair.first;
-    Read	    &read_2		= the_read_pair.second;
-    regmatch_t	    match_1, match_2;
+    Read & read_1 = pair.first;
+    Read & read_2 = pair.second;
+    regmatch_t m1, m2;
 
     // Hunt for a read pair until one is found or end of reads is reached.
     while (true) {
 
         // Toss out all reads which are not marked as first of a pair.
         // Note: We let any exception, which flies out of the following,
-        //	 pass through unhandled.
+        //  pass through unhandled.
         while (true) {
-            imprint_next_read( read_1 );
-            if (!regexec(
-                        &_re_read_1, read_1.name.c_str( ), 1, &match_1, 0
-                    )) {
+            imprint_next_read(read_1);
+            if (!regexec(&_read_1_pattern, read_1.name.c_str( ), 1, &m1, 0)) {
                 break;
             }
         }
@@ -245,69 +221,51 @@ _imprint_next_read_pair_in_ignore_mode( ReadPair &the_read_pair )
         // If not found, then restart search for pair.
         // If found, then validate match.
         // If invalid pair, then restart search for pair.
-        imprint_next_read( read_2 );
-        if (!regexec(
-                    &_re_read_2, read_2.name.c_str( ), 1, &match_2, 0
-                )) {
-            if (_is_valid_read_pair( the_read_pair, match_1, match_2 )) {
+        imprint_next_read(read_2);
+        if (!regexec(&_read_2_pattern, read_2.name.c_str( ), 1, &m2, 0)) {
+            if (_is_valid_read_pair(pair, m1, m2)) {
                 break;
             }
         }
-
     } // while pair not found
+}
 
-} // _imprint_next_read_pair_in_ignore_mode
 
-
-void
-ReadParser::
-_imprint_next_read_pair_in_error_mode( ReadPair &the_read_pair )
+void ReadParser::_imprint_next_read_pair_in_error_mode(ReadPair& pair)
 {
-    Read	    &read_1		= the_read_pair.first;
-    Read	    &read_2		= the_read_pair.second;
-    regmatch_t	    match_1, match_2;
+    Read &read_1 = pair.first;
+    Read &read_2 = pair.second;
+    regmatch_t m1, m2;
 
     // Note: We let any exception, which flies out of the following,
-    //	     pass through unhandled.
-    imprint_next_read( read_1 );
-    imprint_next_read( read_2 );
+    //      pass through unhandled.
+    imprint_next_read(read_1);
+    imprint_next_read(read_2);
 
     // Is the first read really the first member of a pair?
-    if (REG_NOMATCH == regexec(
-                &_re_read_1, read_1.name.c_str( ), 1, &match_1, 0
-            )) {
-        throw InvalidReadPair( );
+    if (REG_NOMATCH == regexec(&_read_1_pattern, read_1.name.c_str( ), 1, &m1, 0)) {
+        throw InvalidReadPair();
     }
     // Is the second read really the second member of a pair?
-    if (REG_NOMATCH == regexec(
-                &_re_read_2, read_2.name.c_str( ), 1, &match_2, 0
-            )) {
-        throw InvalidReadPair( );
+    if (REG_NOMATCH == regexec(&_read_2_pattern, read_2.name.c_str( ), 1, &m2, 0)) {
+        throw InvalidReadPair();
     }
 
     // Is the pair valid?
-    if (!_is_valid_read_pair( the_read_pair, match_1, match_2 )) {
-        throw InvalidReadPair( );
+    if (!_is_valid_read_pair( pair, m1, m2 )) {
+        throw InvalidReadPair();
     }
+}
 
-} // _imprint_next_read_pair_in_error_mode
-
-
-bool
-ReadParser::
-_is_valid_read_pair(
-    ReadPair &the_read_pair, regmatch_t &match_1, regmatch_t &match_2
-)
+bool ReadParser::_is_valid_read_pair(ReadPair& pair, regmatch_t& m1, regmatch_t& m2)
 {
-    return	(match_1.rm_so == match_2.rm_so)
-            &&	(match_1.rm_eo == match_2.rm_eo)
-            &&	(	the_read_pair.first.name.substr( 0, match_1.rm_so )
-                    ==	the_read_pair.second.name.substr( 0, match_1.rm_so ));
+    bool smatch = m1.rm_so == m2.rm_so;
+    bool ematch = m1.rm_eo == m2.rm_eo;
+    bool submatch = pair.first.name.substr(0, m1.rm_so) ==
+                    pair.second.name.substr(0, m2.rm_so);
+    return smatch && ematch && submatch;
 }
 
 } // namespace seqio
 
-
 } // namespace khmer
-
-// vim: set ft=cpp sts=4 sw=4 tw=80:

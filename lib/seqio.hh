@@ -121,6 +121,19 @@ typedef std::pair<Read, Read> ReadPair;
 
 class ReadParser
 {
+    protected:
+        size_t _num_reads;
+        bool _have_qualities;
+        regex_t _read_1_pattern;
+        regex_t _read_2_pattern;
+
+#if (0)
+        void _imprint_next_read_pair_in_allow_mode(ReadPair& pair);
+#endif
+        void _imprint_next_read_pair_in_ignore_mode(ReadPair& pair);
+        void _imprint_next_read_pair_in_error_mode(ReadPair& pair);
+        bool _is_valid_read_pair(ReadPair& pair, regmatch_t& m1, regmatch_t& m2);
+
     public:
         typedef enum {
             PAIR_MODE_ALLOW_UNPAIRED = 0,
@@ -132,7 +145,13 @@ class ReadParser
         ReadParser();
         virtual ~ReadParser();
 
-        virtual bool  is_complete() = 0;
+        virtual bool is_complete() = 0;
+        virtual void imprint_next_read(Read& the_read) = 0;
+        virtual void imprint_next_read_pair(
+            ReadPair& pair,
+            PairMode mode = PAIR_MODE_ERROR_ON_UNPAIRED
+        );
+        size_t get_num_reads();
 
         // Note: 'get_next_read' exists for legacy reasons.
         //      In the long term, it should be eliminated in favor of direct use
@@ -146,43 +165,7 @@ class ReadParser
             imprint_next_read(the_read);
             return the_read;
         }
-        virtual void imprint_next_read(Read& the_read) = 0;
-
-        virtual void imprint_next_read_pair(
-            ReadPair &the_read_pair,
-            PairMode mode = PAIR_MODE_ERROR_ON_UNPAIRED
-        );
-
-        size_t      get_num_reads()
-        {
-            return _num_reads;
-        }
-
-    protected:
-
-        size_t  _num_reads;
-        bool        _have_qualities;
-        regex_t  _re_read_2_nosub;
-        regex_t  _re_read_1;
-        regex_t  _re_read_2;
-
-#if (0)
-        void  _imprint_next_read_pair_in_allow_mode(
-            ReadPair &the_read_pair
-        );
-#endif
-
-        void  _imprint_next_read_pair_in_ignore_mode(
-            ReadPair &the_read_pair
-        );
-        void  _imprint_next_read_pair_in_error_mode(
-            ReadPair &the_read_pair
-        );
-        bool  _is_valid_read_pair(
-            ReadPair &the_read_pair, regmatch_t &match_1, regmatch_t &match_2
-        );
-
-}; // class ReadParser
+};
 
 class SeqAnParser : public ReadParser
 {
