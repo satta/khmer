@@ -42,14 +42,14 @@ Contact: khmer-project@idyll.org
 #include <vector>
 
 #include "khmer.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 namespace khmer
 {
-namespace read_parsers
+namespace seqio
 {
 struct IParser;
-}  // namespace read_parsers
+}  // namespace seqio
 }  // namespace khmer
 
 
@@ -68,7 +68,7 @@ public:
                        bool,
                        unsigned int &,
                        unsigned long long &);
-    void consume_fasta(read_parsers::IParser *,
+    void consume_fasta(seqio::IParser *,
                        bool,
                        unsigned int &,
                        unsigned long long &);

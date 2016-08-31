@@ -45,7 +45,7 @@ Contact: khmer-project@idyll.org
 #include "hashtable.hh"
 #include "khmer_exception.hh"
 #include "labelhash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "subset.hh"
 
 #define IO_BUF_SIZE 250*1000*1000
@@ -55,7 +55,7 @@ Contact: khmer-project@idyll.org
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 /*
  * @camillescott
@@ -84,7 +84,7 @@ LabelHash::consume_fasta_and_tag_with_labels(
 
 void
 LabelHash::consume_fasta_and_tag_with_labels(
-    read_parsers:: IParser *  parser,
+    seqio:: IParser *  parser,
     unsigned int		    &total_reads,   unsigned long long	&n_consumed,
     CallbackFn		    callback,	    void *		callback_data
 )

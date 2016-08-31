@@ -47,16 +47,16 @@ Contact: khmer-project@idyll.org
 #include "hashbits.hh"
 #include "hashtable.hh"
 #include "khmer.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 namespace khmer
 {
 class Hashtable;
 
-namespace read_parsers
+namespace seqio
 {
 struct IParser;
-}  // namespace read_parsers
+}  // namespace seqio
 }  // namespace khmer
 
 namespace khmer
@@ -154,7 +154,7 @@ public:
         void *		  callback_data	  = NULL);
 
     void consume_fasta_and_tag_with_labels(
-        read_parsers:: IParser *	    parser,
+        seqio:: IParser *	    parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed,
         CallbackFn	    callback	    = NULL,

@@ -41,11 +41,11 @@ Contact: khmer-project@idyll.org
 #include "hashbits.hh"
 #include "hashtable.hh"
 #include "khmer_exception.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 void Hashbits::save(std::string outfilename)
 {

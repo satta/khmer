@@ -54,10 +54,10 @@ namespace khmer
 {
 class Hashbits;
 
-namespace read_parsers
+namespace seqio
 {
 struct IParser;
-}  // namespace read_parsers
+}  // namespace seqio
 }  // namespace khmer
 
 namespace khmer
@@ -276,7 +276,7 @@ public:
 
     BoundedCounterType get_max_count(const std::string &s);
 
-    HashIntoType * abundance_distribution(read_parsers::IParser * parser,
+    HashIntoType * abundance_distribution(seqio::IParser * parser,
                                           Hashbits * tracking);
     HashIntoType * abundance_distribution(std::string filename,
                                           Hashbits * tracking);

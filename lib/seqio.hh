@@ -54,7 +54,7 @@ namespace khmer
 
 
 
-namespace read_parsers
+namespace seqio
 {
 
 struct NoMoreReadsAvailable : public  khmer_file_exception {
@@ -213,7 +213,7 @@ inline PartitionID _parse_partition_id(std::string name)
 
 
 
-} // namespace read_parsers
+} // namespace seqio
 
 
 } // namespace khmer

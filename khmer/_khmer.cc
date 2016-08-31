@@ -56,7 +56,7 @@ Contact: khmer-project@idyll.org
 #include "hllcounter.hh"
 
 using namespace khmer;
-using namespace read_parsers;
+using namespace seqio;
 
 //
 // Python 2/3 compatibility: PyInt and PyLong
@@ -213,7 +213,7 @@ namespace python
 typedef struct {
     PyObject_HEAD
     //! Pointer to the low-level genomic read object.
-    read_parsers:: Read *   read;
+    seqio:: Read *   read;
 } khmer_Read_Object;
 
 
@@ -332,7 +332,7 @@ static PyTypeObject khmer_Read_Type = {
 typedef struct {
     PyObject_HEAD
     //! Pointer to the low-level parser object.
-    read_parsers:: IParser *  parser;
+    seqio:: IParser *  parser;
 } khmer_ReadParser_Object;
 
 
@@ -717,7 +717,7 @@ void _init_ReadParser_Type_constants()
 
 
 static
-read_parsers:: IParser *
+seqio:: IParser *
 _PyObject_to_khmer_ReadParser( PyObject * py_object )
 {
     // TODO: Add type-checking.
@@ -1353,7 +1353,7 @@ hashtable_consume_fasta_with_reads_parser(khmer_KHashtable_Object * me,
         return NULL;
     }
 
-    read_parsers:: IParser * rparser =
+    seqio:: IParser * rparser =
         _PyObject_to_khmer_ReadParser( rparser_obj );
 
     // call the C++ function, and trap signals => Python
@@ -2059,7 +2059,7 @@ hashtable_consume_fasta_and_tag_with_reads_parser(khmer_KHashtable_Object * me,
         return NULL;
     }
 
-    read_parsers:: IParser * rparser = rparser_obj-> parser;
+    seqio:: IParser * rparser = rparser_obj-> parser;
 
     // call the C++ function, and trap signals => Python
     const char         *value_exception = NULL;
@@ -3331,7 +3331,7 @@ count_abundance_distribution_with_reads_parser(khmer_KCountingHash_Object * me,
         return NULL;
     }
 
-    read_parsers::IParser *rparser      = rparser_obj->parser;
+    seqio::IParser *rparser      = rparser_obj->parser;
     Hashbits           *hashbits        = tracking_obj->hashbits;
     HashIntoType       *dist            = NULL;
     const char         *value_exception = NULL;

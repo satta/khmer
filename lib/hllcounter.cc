@@ -46,7 +46,7 @@ Contact: khmer-project@idyll.org
 #include "khmer.hh"
 #include "khmer_exception.hh"
 #include "kmer_hash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -381,7 +381,7 @@ void HLLCounter::consume_fasta(
     unsigned int &total_reads,
     unsigned long long &n_consumed)
 {
-    read_parsers::IParser * parser = read_parsers::IParser::get_parser(filename);
+    seqio::IParser * parser = seqio::IParser::get_parser(filename);
 
     consume_fasta(parser, stream_records, total_reads, n_consumed);
 
@@ -389,13 +389,13 @@ void HLLCounter::consume_fasta(
 }
 
 void HLLCounter::consume_fasta(
-    read_parsers::IParser *parser,
+    seqio::IParser *parser,
     bool stream_records,
     unsigned int &      total_reads,
     unsigned long long &    n_consumed)
 {
 
-    read_parsers::Read read;
+    seqio::Read read;
     HLLCounter** counters;
     unsigned int *n_consumed_partial;
     unsigned int *total_reads_partial;
@@ -424,7 +424,7 @@ void HLLCounter::consume_fasta(
                 // Iterate through the reads and consume their k-mers.
                 try {
                     read = parser->get_next_read();
-                } catch (read_parsers::NoMoreReadsAvailable) {
+                } catch (seqio::NoMoreReadsAvailable) {
                     break;
                 }
 

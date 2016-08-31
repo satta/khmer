@@ -46,12 +46,12 @@ Contact: khmer-project@idyll.org
 #include "hashtable.hh"
 #include "khmer_exception.hh"
 #include "kmer_hash.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 #include "zlib.h"
 
 using namespace std;
 using namespace khmer;
-using namespace khmer:: read_parsers;
+using namespace khmer::seqio;
 
 BoundedCounterType CountingHash::get_min_count(const std::string &s)
 {
@@ -91,7 +91,7 @@ BoundedCounterType CountingHash::get_max_count(const std::string &s)
 
 HashIntoType *
 CountingHash::abundance_distribution(
-    read_parsers::IParser * parser,
+    seqio::IParser * parser,
     Hashbits *          tracking)
 {
     HashIntoType * dist = new HashIntoType[MAX_BIGCOUNT + 1];

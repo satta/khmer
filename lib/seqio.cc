@@ -41,13 +41,13 @@ Contact: khmer-project@idyll.org
 #include <fstream>
 
 #include "khmer_exception.hh"
-#include "read_parsers.hh"
+#include "seqio.hh"
 
 namespace khmer
 {
 
 
-namespace read_parsers
+namespace seqio
 {
 
 void
@@ -319,7 +319,7 @@ _is_valid_read_pair(
                     ==	the_read_pair.second.name.substr( 0, match_1.rm_so ));
 }
 
-} // namespace read_parsers
+} // namespace seqio
 
 
 } // namespace khmer
