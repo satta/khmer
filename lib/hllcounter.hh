@@ -48,7 +48,7 @@ namespace khmer
 {
 namespace seqio
 {
-struct IParser;
+class ReadParser;
 }  // namespace seqio
 }  // namespace khmer
 
@@ -68,7 +68,7 @@ public:
                        bool,
                        unsigned int &,
                        unsigned long long &);
-    void consume_fasta(seqio::IParser *,
+    void consume_fasta(seqio::ReadParser *,
                        bool,
                        unsigned int &,
                        unsigned long long &);

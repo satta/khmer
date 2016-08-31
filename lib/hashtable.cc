@@ -107,12 +107,12 @@ bool Hashtable::check_and_normalize_read(std::string &read) const
 void
 Hashtable::
 consume_fasta(
-    std:: string const  &filename,
+    std::string const  &filename,
     unsigned int	      &total_reads, unsigned long long	&n_consumed
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
+    ReadParser *	  parser =
+        ReadParser::get_parser( filename );
 
     consume_fasta(
         parser,
@@ -125,7 +125,7 @@ consume_fasta(
 void
 Hashtable::
 consume_fasta(
-    seqio:: IParser *  parser,
+    seqio::ReadParser *  parser,
     unsigned int		    &total_reads, unsigned long long  &n_consumed
 )
 {
@@ -444,12 +444,12 @@ void Hashtable::consume_sequence_and_tag(const std::string& seq,
 void
 Hashtable::
 consume_fasta_and_tag(
-    std:: string const  &filename,
+    std::string const  &filename,
     unsigned int	      &total_reads, unsigned long long	&n_consumed
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
+    ReadParser *	  parser =
+        ReadParser::get_parser( filename );
 
     consume_fasta_and_tag(
         parser,
@@ -462,7 +462,7 @@ consume_fasta_and_tag(
 void
 Hashtable::
 consume_fasta_and_tag(
-    seqio:: IParser *  parser,
+    seqio::ReadParser *  parser,
     unsigned int		    &total_reads,   unsigned long long	&n_consumed
 )
 {
@@ -524,7 +524,7 @@ void Hashtable::consume_partitioned_fasta(const std::string &filename,
     total_reads = 0;
     n_consumed = 0;
 
-    IParser* parser = IParser::get_parser(filename.c_str());
+    ReadParser* parser = ReadParser::get_parser(filename.c_str());
     Read read;
 
     string seq = "";

@@ -66,7 +66,7 @@ class Hashtable;
 
 namespace seqio
 {
-struct IParser;
+class ReadParser;
 }  // namespace seqio
 }  // namespace khmer
 
@@ -186,7 +186,7 @@ public:
     // Count every k-mer from a stream of FASTA or FASTQ reads,
     // using the supplied parser.
     void consume_fasta(
-        seqio:: IParser *	    parser,
+        seqio::ReadParser *	    parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed
     );
@@ -270,7 +270,7 @@ public:
     // using the supplied parser.
     // Tag certain ones on the connectivity graph.
     void consume_fasta_and_tag(
-        seqio:: IParser *	    parser,
+        seqio::ReadParser *	    parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed
     );

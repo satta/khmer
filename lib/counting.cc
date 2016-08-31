@@ -91,7 +91,7 @@ BoundedCounterType CountingHash::get_max_count(const std::string &s)
 
 HashIntoType *
 CountingHash::abundance_distribution(
-    seqio::IParser * parser,
+    seqio::ReadParser * parser,
     Hashbits *          tracking)
 {
     HashIntoType * dist = new HashIntoType[MAX_BIGCOUNT + 1];
@@ -146,7 +146,7 @@ HashIntoType * CountingHash::abundance_distribution(
     std::string filename,
     Hashbits *  tracking)
 {
-    IParser* parser = IParser::get_parser(filename.c_str());
+    ReadParser* parser = ReadParser::get_parser(filename.c_str());
 
     HashIntoType * distribution = abundance_distribution(parser, tracking);
     delete parser;

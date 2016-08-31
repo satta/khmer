@@ -56,7 +56,7 @@ struct SeqAnParser::Handle {
     uint32_t seqan_spin_lock;
 };
 
-SeqAnParser::SeqAnParser( char const * filename ) : IParser( )
+SeqAnParser::SeqAnParser( char const * filename ) : ReadParser( )
 {
     _private = new SeqAnParser::Handle();
     seqan::open(_private->stream, filename);
@@ -69,7 +69,7 @@ SeqAnParser::SeqAnParser( char const * filename ) : IParser( )
         message = message + filename + " does not contain any sequences!";
         throw InvalidStream(message);
     }
-    __asm__ __volatile__ ("" ::: "memory");
+    __asm__ __volatile__ ("":::"memory");
     _private->seqan_spin_lock = 0;
 }
 
@@ -106,7 +106,7 @@ void SeqAnParser::imprint_next_read(Read &the_read)
             }
         }
     }
-    __asm__ __volatile__ ("" ::: "memory");
+    __asm__ __volatile__ ("":::"memory");
     _private->seqan_spin_lock = 0;
     // Throw any error in the read, even if we're at the end
     if (invalid_read_exc != NULL) {
@@ -129,10 +129,10 @@ SeqAnParser::~SeqAnParser()
     delete _private;
 }
 
-IParser * const
-IParser::
+ReadParser * const
+ReadParser::
 get_parser(
-    std:: string const	    &ifile_name
+    std::string const	    &ifile_name
 )
 {
 
@@ -140,8 +140,8 @@ get_parser(
 }
 
 
-IParser::
-IParser(
+ReadParser::
+ReadParser(
 )
 {
     int regex_rc =
@@ -174,8 +174,8 @@ IParser(
     _have_qualities = false;
 }
 
-IParser::
-~IParser( )
+ReadParser::
+~ReadParser( )
 {
     regfree( &_re_read_2_nosub );
     regfree( &_re_read_1 );
@@ -183,19 +183,19 @@ IParser::
 }
 
 void
-IParser::
-imprint_next_read_pair( ReadPair &the_read_pair, uint8_t mode )
+ReadParser::
+imprint_next_read_pair( ReadPair &the_read_pair, PairMode mode )
 {
     switch (mode) {
 #if (0)
-    case IParser:: PAIR_MODE_ALLOW_UNPAIRED:
+    case ReadParser::PAIR_MODE_ALLOW_UNPAIRED:
         _imprint_next_read_pair_in_allow_mode( the_read_pair );
         break;
 #endif
-    case IParser:: PAIR_MODE_IGNORE_UNPAIRED:
+    case ReadParser::PAIR_MODE_IGNORE_UNPAIRED:
         _imprint_next_read_pair_in_ignore_mode( the_read_pair );
         break;
-    case IParser:: PAIR_MODE_ERROR_ON_UNPAIRED:
+    case ReadParser::PAIR_MODE_ERROR_ON_UNPAIRED:
         _imprint_next_read_pair_in_error_mode( the_read_pair );
         break;
     default:
@@ -208,7 +208,7 @@ imprint_next_read_pair( ReadPair &the_read_pair, uint8_t mode )
 
 #if (0)
 void
-IParser::
+ReadParser::
 _imprint_next_read_pair_in_allow_mode( ReadPair &the_read_pair )
 {
     // TODO: Implement.
@@ -219,7 +219,7 @@ _imprint_next_read_pair_in_allow_mode( ReadPair &the_read_pair )
 
 
 void
-IParser::
+ReadParser::
 _imprint_next_read_pair_in_ignore_mode( ReadPair &the_read_pair )
 {
     Read	    &read_1		= the_read_pair.first;
@@ -260,7 +260,7 @@ _imprint_next_read_pair_in_ignore_mode( ReadPair &the_read_pair )
 
 
 void
-IParser::
+ReadParser::
 _imprint_next_read_pair_in_error_mode( ReadPair &the_read_pair )
 {
     Read	    &read_1		= the_read_pair.first;
@@ -294,7 +294,7 @@ _imprint_next_read_pair_in_error_mode( ReadPair &the_read_pair )
 
 
 bool
-IParser::
+ReadParser::
 _is_valid_read_pair(
     ReadPair &the_read_pair, regmatch_t &match_1, regmatch_t &match_2
 )

@@ -65,13 +65,13 @@ using namespace khmer::seqio;
 
 void
 LabelHash::consume_fasta_and_tag_with_labels(
-    std:: string const  &filename,
+    std::string const  &filename,
     unsigned int	      &total_reads, unsigned long long	&n_consumed,
     CallbackFn	      callback,	    void *		callback_data
 )
 {
-    IParser *	  parser =
-        IParser::get_parser( filename );
+    ReadParser *	  parser =
+        ReadParser::get_parser( filename );
 
     consume_fasta_and_tag_with_labels(
         parser,
@@ -84,7 +84,7 @@ LabelHash::consume_fasta_and_tag_with_labels(
 
 void
 LabelHash::consume_fasta_and_tag_with_labels(
-    seqio:: IParser *  parser,
+    seqio::ReadParser *  parser,
     unsigned int		    &total_reads,   unsigned long long	&n_consumed,
     CallbackFn		    callback,	    void *		callback_data
 )
@@ -155,7 +155,7 @@ void LabelHash::consume_partitioned_fasta_and_tag_with_labels(
     total_reads = 0;
     n_consumed = 0;
 
-    IParser* parser = IParser::get_parser(filename.c_str());
+    ReadParser* parser = ReadParser::get_parser(filename.c_str());
     Read read;
 
     std::string seq = "";

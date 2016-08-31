@@ -55,7 +55,7 @@ class Hashtable;
 
 namespace seqio
 {
-struct IParser;
+class ReadParser;
 }  // namespace seqio
 }  // namespace khmer
 
@@ -154,7 +154,7 @@ public:
         void *		  callback_data	  = NULL);
 
     void consume_fasta_and_tag_with_labels(
-        seqio:: IParser *	    parser,
+        seqio::ReadParser *	    parser,
         unsigned int	    &total_reads,
         unsigned long long  &n_consumed,
         CallbackFn	    callback	    = NULL,

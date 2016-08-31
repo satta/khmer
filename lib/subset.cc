@@ -120,7 +120,7 @@ size_t SubsetPartition::output_partitioned_file(
     CallbackFn		callback,
     void *		callback_data)
 {
-    IParser* parser = IParser::get_parser(infilename);
+    ReadParser* parser = ReadParser::get_parser(infilename);
     ofstream outfile(outputfile.c_str());
 
     unsigned int total_reads = 0;

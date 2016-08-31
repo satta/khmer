@@ -381,7 +381,7 @@ void HLLCounter::consume_fasta(
     unsigned int &total_reads,
     unsigned long long &n_consumed)
 {
-    seqio::IParser * parser = seqio::IParser::get_parser(filename);
+    seqio::ReadParser * parser = seqio::ReadParser::get_parser(filename);
 
     consume_fasta(parser, stream_records, total_reads, n_consumed);
 
@@ -389,7 +389,7 @@ void HLLCounter::consume_fasta(
 }
 
 void HLLCounter::consume_fasta(
-    seqio::IParser *parser,
+    seqio::ReadParser *parser,
     bool stream_records,
     unsigned int &      total_reads,
     unsigned long long &    n_consumed)

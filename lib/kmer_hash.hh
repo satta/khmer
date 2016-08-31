@@ -225,7 +225,7 @@ public:
     Kmer build_kmer(HashIntoType kmer_u)
     {
         HashIntoType kmer_f, kmer_r;
-        std:: string kmer_s = _revhash(kmer_u, _ksize);
+        std::string kmer_s = _revhash(kmer_u, _ksize);
         _hash(kmer_s.c_str(), _ksize, kmer_f, kmer_r);
         return Kmer(kmer_f, kmer_r, kmer_u);
     }
