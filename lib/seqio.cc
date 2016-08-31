@@ -1,7 +1,7 @@
 /*
 This file is part of khmer, https://github.com/dib-lab/khmer/, and is
 Copyright (C) 2012-2015, Michigan State University.
-Copyright (C) 2015, The Regents of the University of California.
+Copyright (C) 2015-2016, The Regents of the University of California.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -49,20 +49,6 @@ namespace khmer
 
 namespace seqio
 {
-
-void
-Read::write_to(std::ostream& output)
-{
-    if (quality.length() != 0) {
-        output << "@" << name << std::endl
-               << sequence << std::endl
-               << "+" << std::endl
-               << quality << std::endl;
-    } else {
-        output << ">" << name << std::endl
-               << sequence << std::endl;
-    }
-}
 
 
 struct SeqAnParser::Handle {

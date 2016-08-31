@@ -1,7 +1,7 @@
 /*
 This file is part of khmer, https://github.com/dib-lab/khmer/, and is
 Copyright (C) 2012-2015, Michigan State University.
-Copyright (C) 2015, The Regents of the University of California.
+Copyright (C) 2015-2016, The Regents of the University of California.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -52,10 +52,11 @@ Contact: khmer-project@idyll.org
 namespace khmer
 {
 
-
-
 namespace seqio
 {
+
+//------------------------------------------------------------------------------
+// Exceptions related to sequence I/O
 
 struct NoMoreReadsAvailable : public  khmer_file_exception {
     explicit NoMoreReadsAvailable(const std::string& msg) :
@@ -85,25 +86,35 @@ struct InvalidReadPair : public  khmer_value_exception {
         khmer_value_exception("Invalid read pair detected.") {}
 };
 
-struct Read {
-    std:: string    name;
-    std:: string    annotations;
-    std:: string    sequence;
-    std:: string    quality;
-    // TODO? Add description field.
+//------------------------------------------------------------------------------
+// Read class
 
-    inline void reset ( )
-    {
-        name.clear( );
-        annotations.clear( );
-        sequence.clear( );
-        quality.clear( );
-    }
+class Read
+{
+    public:
+        std::string name;
+        std::string annotations;
+        std::string sequence;
+        std::string quality;
 
-    void write_to(std::ostream&);
+        inline void reset ( )
+        {
+            name.clear( );
+            annotations.clear( );
+            sequence.clear( );
+            quality.clear( );
+        }
+        inline void write_to(std::ostream& output)
+        {
+            if (quality.length() != 0) {
+                output << "@" << name << '\n' << sequence << '\n' << "+" << '\n'
+                       << quality << '\n';
+            } else {
+                output << ">" << name << '\n' << sequence << '\n';
+            }
+        }
 };
-
-typedef std:: pair< Read, Read >	ReadPair;
+typedef std::pair<Read, Read> ReadPair;
 
 struct IParser {
 
@@ -114,59 +125,59 @@ struct IParser {
     };
 
     static IParser * const  get_parser(
-        std:: string const 	&ifile_name
+        std:: string const  &ifile_name
     );
 
     IParser( );
     virtual ~IParser( );
 
-    virtual bool		is_complete( ) = 0;
+    virtual bool  is_complete( ) = 0;
 
     // Note: 'get_next_read' exists for legacy reasons.
-    //	     In the long term, it should be eliminated in favor of direct use of
-    //	     'imprint_next_read'. A potentially costly copy-by-value happens
-    //	     upon return.
+    //      In the long term, it should be eliminated in favor of direct use of
+    //      'imprint_next_read'. A potentially costly copy-by-value happens
+    //      upon return.
     // TODO: Eliminate all calls to 'get_next_read'.
     // Or switch to C++11 w/ move constructors
-    inline Read		get_next_read( )
+    inline Read  get_next_read( )
     {
         Read the_read;
         imprint_next_read( the_read );
         return the_read;
     }
-    virtual void	imprint_next_read( Read &the_read ) = 0;
+    virtual void imprint_next_read( Read &the_read ) = 0;
 
-    virtual void	imprint_next_read_pair(
+    virtual void imprint_next_read_pair(
         ReadPair &the_read_pair,
         uint8_t mode = PAIR_MODE_ERROR_ON_UNPAIRED
     );
 
-    size_t		    get_num_reads()
+    size_t      get_num_reads()
     {
         return _num_reads;
     }
 
 protected:
 
-    size_t		_num_reads;
+    size_t  _num_reads;
     bool        _have_qualities;
-    regex_t		_re_read_2_nosub;
-    regex_t		_re_read_1;
-    regex_t		_re_read_2;
+    regex_t  _re_read_2_nosub;
+    regex_t  _re_read_1;
+    regex_t  _re_read_2;
 
 #if (0)
-    void		_imprint_next_read_pair_in_allow_mode(
+    void  _imprint_next_read_pair_in_allow_mode(
         ReadPair &the_read_pair
     );
 #endif
 
-    void		_imprint_next_read_pair_in_ignore_mode(
+    void  _imprint_next_read_pair_in_ignore_mode(
         ReadPair &the_read_pair
     );
-    void		_imprint_next_read_pair_in_error_mode(
+    void  _imprint_next_read_pair_in_error_mode(
         ReadPair &the_read_pair
     );
-    bool		_is_valid_read_pair(
+    bool  _is_valid_read_pair(
         ReadPair &the_read_pair, regmatch_t &match_1, regmatch_t &match_2
     );
 
