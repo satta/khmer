@@ -27,6 +27,7 @@ under semantic versioning, but will be in future versions of khmer.
   JunctionCountAssembler class.
 
 ### Changed
+- Suppress display of -x and -N command line options in script help messages.
 - Switch from nose to py.test as the testing framework.
 - Switch from internally managed Jenkins setup to Travis CI for continuous
   integration testing.
