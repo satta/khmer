@@ -134,22 +134,21 @@ Each pull request should be automatically populated with the following
 checklist::
 
    - [ ] Is it mergeable?
-   - [ ] Did it pass the tests?
-   - [ ] If it introduces new functionality in scripts/ is it tested?
-     Check for code coverage with `make clean diff-cover`
-   - [ ] Is it well formatted? Look at `make pep8`, `make diff_pylint_report`,
-     `make cppcheck`, and `make doc` output. Use `make format` and manual
-     fixing as needed.
-   - [ ] Did it change the command-line interface? Only additions are allowed
-     without a major version increment. Changing file formats also requires a
-     major version number increment.
-   - [ ] Is it documented in the ChangeLog?
-     http://en.wikipedia.org/wiki/Changelog#Format
+   - [ ] `make test` Did it pass the tests?
+   - [ ] `make clean diff-cover` If it introduces new functionality in
+     `scripts/` is it tested?
+   - [ ] `make format diff_pylint_report cppcheck doc pydocstyle` Is it well
+     formatted?
+   - [ ] Did it change the command-line interface? Only backwards-compatible
+     additions are allowed without a major version increment. Changing file
+     formats also requires a major version number increment.
+   - [ ] For substantial changes or changes to the command-line interface, is it
+     documented in `CHANGELOG.md`? See [keepachangelog](http://keepachangelog.com/)
+     for more details.
    - [ ] Was a spellchecker run on the source code and documentation after
      changes were made?
    - [ ] Do the changes respect streaming IO? (Are they
      tested for streaming IO?)
-   - [ ] Is the Copyright year up to date?
 
 **Note** that after you submit the pull request you can check and uncheck
 the individual boxes on the formatted comment; no need to put x or y
@@ -184,6 +183,6 @@ Here's a checklist for new CPython types with future-proofing for Python 3::
      (`Py_DECREF(self);`) before each error-path exit (`return NULL;`)
    - [ ] No factory methods. Example: `khmer_new_readaligner`
    - [ ] Type object is passed to `PyType_Ready` and its return code is checked
-     in `init_khmer()`
+     in `MOD_INIT()`
    - [ ] The reference count for the type object is incremented before adding
      it to the module: `Py_INCREF(&khmer_${OBJECTNAME}_Type);`.
